@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f4ed" />
+    <meta name="description" content="Luyện bảng chữ cái tiếng Nhật bằng cách gõ phiên âm và vẽ Hiragana. Học theo nhịp của bạn, xem kết quả từng chữ." />
+    <title>Kana | Luyện chữ tiếng Nhật</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="./" aria-label="Kana, về trang đầu">
+          <span class="brand-mark" aria-hidden="true">あ</span>
+          <span><strong>KANA</strong><small>HỌC TIẾNG NHẬT</small></span>
+        </a>
+        <div class="header-right"><span class="header-note">MỘT CHỮ MỖI LẦN. NHỚ LÂU HƠN.</span><span class="header-spark" aria-hidden="true">✳</span></div>
+      </header>
+
+      <main id="app" tabindex="-1"></main>
+
+      <footer class="site-footer"><span>かな · Học từng nét, nhớ từng âm</span><span>Được thiết kế để học trên máy tính và điện thoại</span></footer>
+    </div>
+    <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+    <script src="./vendor/kanji-canvas.min.js" defer></script>
+    <script src="./hiragana-patterns.js" defer></script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
