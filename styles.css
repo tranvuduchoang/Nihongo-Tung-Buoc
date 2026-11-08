@@ -71,7 +71,7 @@ main{flex:1}
 .mode-card p{font-size:14px;color:#78857f;line-height:1.7;max-width:420px;margin:0 0 27px}
 .button{min-height:47px;padding:0 20px;border-radius:7px;font-size:13px;font-weight:700;display:inline-flex;justify-content:space-between;align-items:center;gap:30px;transition:transform .15s,background .15s;align-self:start}
 .button:hover{transform:translateY(-2px)}
-.button:focus-visible,.back-link:focus-visible,.draw-tools button:focus-visible,.next-link:focus-visible,.resume-button:focus-visible,.feedback-correct:focus-visible{outline:3px solid #b9785f;outline-offset:3px}
+.button:focus-visible,.back-link:focus-visible,.draw-tools button:focus-visible,.resume-button:focus-visible,.feedback-correct:focus-visible{outline:3px solid #b9785f;outline-offset:3px}
 .button-dark{background:#263d42;color:#fff;border:1px solid #263d42}
 .button-dark:hover{background:#37585a}
 .button-outline{background:transparent;color:#2c4a49;border:1px solid #8da69a}
@@ -118,11 +118,11 @@ main{flex:1}
 .feedback-copy strong{font-size:18px}
 .feedback-copy p{margin:5px 0 0;font-size:13px}
 .feedback-copy small{display:block;margin-top:6px;font-size:11px;opacity:.8}
+.feedback-actions{display:flex;flex-direction:column;align-items:stretch;gap:9px;margin-left:auto}
 .feedback-correct{border:1px solid currentColor;color:inherit;border-radius:6px;background:transparent;padding:10px 12px;font-size:12px;font-weight:700}
+.feedback-next{min-width:164px;align-self:stretch}
 .quiz-bottom{margin-top:24px;display:flex;justify-content:space-between;align-items:center;color:#96a399;font-size:11px;gap:12px}
 .quiz-bottom>span{display:flex;align-items:center;gap:9px}
-.next-link{border:0;background:transparent;color:#3d6e58;font-weight:700;font-size:12px}
-.next-link span{margin-left:8px}
 .draw-panel{min-height:495px}
 .draw-panel .question-side{min-height:495px}
 .draw-panel .answer-side{padding:26px 34px;align-items:center}
@@ -227,7 +227,8 @@ main{flex:1}
 .feedback{align-items:flex-start;padding:16px;gap:12px;flex-wrap:wrap}
 .feedback-icon{height:43px;width:43px;font-size:29px}
 .feedback-copy{flex-basis:calc(100% - 60px)}
-.feedback-correct{margin-left:55px}
+.feedback-actions{flex-basis:100%;margin-left:0}
+.feedback-next,.feedback-correct{width:100%;justify-content:center}
 .results-hero{padding:53px 0 30px}
 .stat-grid{gap:7px;margin-bottom:45px}
 .stat-card{padding:18px 5px}

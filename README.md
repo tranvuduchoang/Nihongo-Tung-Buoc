@@ -7,6 +7,8 @@ Website tĩnh để học 46 chữ Hiragana cơ bản bằng hai cách:
 - **Nhìn chữ, gõ âm:** nhập Romaji; trả lời đúng/sai được báo ngay rồi tự chuyển chữ.
 - **Nhìn âm, vẽ chữ:** vẽ bằng chuột hoặc ngón tay; bộ nhận dạng chạy ngay trong trình duyệt.
 
+Kết quả giữ trên màn hình trong 60 giây trước khi tự chuyển. Người học có thể bấm **Chữ tiếp theo** để chuyển ngay; không có đồng hồ đếm ngược trên giao diện.
+
 Sau mỗi lượt, trang kết quả hiển thị đủ 46 chữ với màu xanh/đỏ và nút ôn lại chữ sai. Tiến độ lượt học hiện tại được lưu trong `localStorage` của trình duyệt. Katakana và Kanji đang là mục dự kiến cho các phiên bản sau.
 
 ## Chạy tại máy

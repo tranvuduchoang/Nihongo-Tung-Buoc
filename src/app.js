@@ -12,11 +12,12 @@ const KANA = [
 ];
 
 const STORAGE_KEY = 'kana-study-v1';
+const FEEDBACK_DELAY_MS = 60_000;
 const app = document.querySelector('#app');
 const announcer = document.querySelector('#announcer');
 const state = {
   screen: 'home', mode: 'type', queue: [], cursor: 0,
-  results: {}, feedback: null, snapshot: '', strokes: [], drawing: false,
+  results: {}, feedback: null, feedbackUntil: 0, snapshot: '', strokes: [], drawing: false,
   pointerId: null, timer: null
 };
 
@@ -30,7 +31,8 @@ function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       screen: state.screen, mode: state.mode, queue: state.queue,
-      cursor: state.cursor, results: state.results, pendingAdvance: Boolean(state.feedback)
+      cursor: state.cursor, results: state.results, pendingAdvance: Boolean(state.feedback),
+      feedback: state.feedback, feedbackUntil: state.feedbackUntil
     }));
   } catch { /* Private browsing can block storage; the current session still works. */ }
 }
@@ -52,11 +54,25 @@ function restore() {
         clean[n] = {correct: result.correct, answer: String(result.answer || '').slice(0, 20)};
       }
     }
-    const cursor = Math.min(data.queue.length,
-      data.cursor + (data.screen === 'quiz' && data.pendingAdvance ? 1 : 0));
+    let cursor = data.cursor;
+    let feedback = null;
+    let feedbackUntil = 0;
+    if (data.screen === 'quiz' && data.pendingAdvance && cursor < data.queue.length) {
+      const now = Date.now();
+      const saved = data.feedback;
+      const until = Number(data.feedbackUntil);
+      if (saved && typeof saved.correct === 'boolean' && Number.isFinite(until) &&
+          until > now && until <= now + FEEDBACK_DELAY_MS && clean[data.queue[cursor]]) {
+        feedback = {correct: saved.correct, answer: String(saved.answer || '').slice(0, 20),
+          recognized: String(saved.recognized || '').slice(0, 10), corrected: Boolean(saved.corrected)};
+        feedbackUntil = until;
+      } else {
+        cursor++;
+      }
+    }
     Object.assign(state, {screen: data.screen === 'home' ? 'home' :
       cursor === data.queue.length ? 'results' : data.screen,
-      mode: data.mode, queue: data.queue, cursor, results: clean});
+      mode: data.mode, queue: data.queue, cursor, results: clean, feedback, feedbackUntil});
   } catch { /* Ignore stale or malformed browser data. */ }
 }
 
@@ -85,6 +101,7 @@ function start(mode, retry = false) {
   state.results = retry ? {...state.results} : {};
   state.screen = 'quiz';
   state.feedback = null;
+  state.feedbackUntil = 0;
   state.strokes = [];
   save();
   render();
@@ -101,6 +118,7 @@ function home() {
     state.snapshot = '';
   }
   state.feedback = null;
+  state.feedbackUntil = 0;
   state.screen = finishedByFeedback ? 'results' : 'home';
   save();
   render();
@@ -111,6 +129,7 @@ function next() {
   clearTimer();
   state.cursor++;
   state.feedback = null;
+  state.feedbackUntil = 0;
   state.snapshot = '';
   state.strokes = [];
   state.screen = state.cursor >= state.queue.length ? 'results' : 'quiz';
@@ -123,15 +142,17 @@ function grade(correct, answer, recognized = '') {
   const index = state.queue[state.cursor];
   state.results[index] = {correct, answer};
   state.feedback = {correct, answer, recognized};
+  state.feedbackUntil = Date.now() + FEEDBACK_DELAY_MS;
   if (state.mode === 'draw') {
     const canvas = document.querySelector('#draw-canvas');
     state.snapshot = canvas?.toDataURL('image/png') || '';
   }
   save();
   render();
-  announce(correct ? 'Chính xác. Sắp chuyển sang chữ tiếp theo.' :
-    `Chưa đúng. Đáp án là ${KANA[index][0]}, ${KANA[index][1]}. Sắp chuyển sang chữ tiếp theo.`);
-  state.timer = setTimeout(next, correct ? 1400 : 2800);
+  document.querySelector('.feedback')?.scrollIntoView({block: 'nearest'});
+  announce(correct ? 'Chính xác. Bạn có thể chọn chữ tiếp theo.' :
+    `Chưa đúng. Đáp án là ${KANA[index][0]}, ${KANA[index][1]}. Bạn có thể chọn chữ tiếp theo.`);
+  state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
 }
 
 function checkTyped(event) {
@@ -175,10 +196,11 @@ function correctRecognition() {
   const index = state.queue[state.cursor];
   state.results[index] = {correct: true, answer: 'Tự xác nhận'};
   state.feedback = {...state.feedback, correct: true, corrected: true};
+  state.feedbackUntil = Date.now() + FEEDBACK_DELAY_MS;
   save();
   render();
-  announce('Đã sửa đánh giá thành đúng. Sắp chuyển sang chữ tiếp theo.');
-  state.timer = setTimeout(next, 1200);
+  announce('Đã sửa đánh giá thành đúng. Bạn có thể chọn chữ tiếp theo.');
+  state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
 }
 
 function renderHome() {
@@ -226,7 +248,10 @@ function renderFeedback() {
       `Đáp án đúng là <b>${item[0]} — ${item[1]}</b>.`}</p>
       ${!right && state.mode === 'draw' ? `<small>Máy nhận dạng: ${escapeHtml(f.recognized || 'không rõ')}. Nếu máy chấm nhầm, hãy sửa đánh giá.</small>` : ''}
     </div>
-    ${!right && state.mode === 'draw' ? `<button class="feedback-correct" data-action="correct-recognition">Tôi đã vẽ đúng</button>` : ''}
+    <div class="feedback-actions">
+      ${!right && state.mode === 'draw' ? `<button class="feedback-correct" data-action="correct-recognition">Tôi đã vẽ đúng</button>` : ''}
+      <button class="button button-dark feedback-next" data-action="next">Chữ tiếp theo <span aria-hidden="true">→</span></button>
+    </div>
   </div>`;
 }
 
@@ -247,7 +272,7 @@ function renderQuiz() {
       </div>
     </div>
     ${renderFeedback()}
-    <div class="quiz-bottom"><span><span class="tiny-dot"></span> ${state.feedback ? 'Tự động chuyển sang chữ tiếp theo...' : 'Mỗi chữ chỉ xuất hiện một lần trong lượt học'}</span>${state.feedback ? `<button data-action="next" class="next-link">Chữ tiếp theo <span aria-hidden="true">→</span></button>` : ''}</div>
+    <div class="quiz-bottom"><span><span class="tiny-dot"></span> Mỗi chữ chỉ xuất hiện một lần trong lượt học</span></div>
   </section>`;
 }
 
@@ -366,3 +391,4 @@ app.addEventListener('click', event => {
 
 restore();
 render();
+if (state.feedback) state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
