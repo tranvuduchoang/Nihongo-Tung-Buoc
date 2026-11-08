@@ -1,4 +1,4 @@
-# Kana — luyện bảng chữ cái tiếng Nhật
+# Nihongo Từng Bước
 
 Website tĩnh để học 46 chữ Hiragana cơ bản bằng hai cách:
 
@@ -19,10 +19,10 @@ Sau đó mở `http://localhost:8000`.
 
 ## Đăng lên GitHub Pages
 
-1. Tạo repository GitHub trống, rồi nối thư mục này với repository đó và đẩy nhánh `main`:
+1. Nối thư mục này với repository GitHub và đẩy nhánh `main`:
 
    ```sh
-   git remote add origin https://github.com/<ten-tai-khoan>/<ten-repository>.git
+   git remote add origin https://github.com/tranvuduchoang/Nihongo-Tung-Buoc.git
    git push -u origin main
    ```
 
