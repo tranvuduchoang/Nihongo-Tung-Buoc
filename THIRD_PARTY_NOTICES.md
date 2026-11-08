@@ -1,6 +1,16 @@
 # Third-party notices
 
-Handwriting recognition uses [KanjiCanvas](http://github.com/asdfjkl/kanjicanvas) by Dominik Klein and contributors. `vendor/kanji-canvas.min.js` is copied from its repository. `hiragana-patterns.js` is generated from its `hiragana/*.xml` examples. Both are distributed under the following MIT license.
+## Tomoe
+
+`hiragana-patterns-tomoe.js` is derived from `data/handwriting-ja.xml` in [Tomoe](https://sourceforge.net/projects/tomoe/) 0.6.0 and is distributed under the [GNU Lesser General Public License, version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html). The file holds stroke templates computed from the original strokes.
+
+## KanjiVG
+
+`hiragana-patterns-kanjivg.js` is derived from [KanjiVG](https://kanjivg.tagaini.net/), copyright (C) 2009-2011 Ulrich Apel, and is distributed under the [Creative Commons Attribution-Share Alike 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. The SVG stroke paths were converted to stroke templates.
+
+## KanjiCanvas
+
+Handwriting recognition uses [KanjiCanvas](http://github.com/asdfjkl/kanjicanvas) by Dominik Klein and contributors. `vendor/kanji-canvas.min.js` is copied from its repository. The templates tagged `kanjicanvas` in `hiragana-patterns.js` are generated from its `hiragana/*.xml` examples. Both are distributed under the following MIT license.
 
 Copyright (c) 2019 Dominik Klein, Kanji Canvas
 

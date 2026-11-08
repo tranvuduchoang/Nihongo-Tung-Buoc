@@ -164,27 +164,28 @@ function checkTyped(event) {
   grade(current().slice(1).includes(answer), answer);
 }
 
+function showDrawMessage(message) {
+  const element = document.querySelector('#draw-message');
+  if (element) element.textContent = message;
+  if (message) announce(message);
+}
+
 function recognizeDrawing() {
-  if (!state.strokes.length) { announce('Hãy vẽ chữ trước khi kiểm tra.'); return; }
+  if (!state.strokes.length) { showDrawMessage('Hãy vẽ chữ trước khi kiểm tra.'); return; }
   const all = state.strokes.flat();
   const xs = all.map(p => p[0]);
   const ys = all.map(p => p[1]);
   const width = Math.max(...xs) - Math.min(...xs);
   const height = Math.max(...ys) - Math.min(...ys);
-  if (Math.max(width, height) < 38 || all.length < 8) {
-    announce('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return;
+  if (Math.max(width, height) < 38) {
+    showDrawMessage('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return;
   }
   let recognized = '';
   try {
     if (!window.KanjiCanvas?.refPatterns?.length) throw new Error('Recognition data unavailable');
-    const engine = window.KanjiCanvas;
-    engine.recordedPattern_quiz = state.strokes.map(stroke => stroke.length === 1 ? [...stroke, stroke[0]] : stroke);
-    const normalized = engine.momentNormalize('quiz');
-    const features = engine.extractFeatures(normalized, 20);
-    const candidates = engine.coarseClassification(features);
-    recognized = candidates.length ? engine.fineClassification(features, candidates).trim().split(/\s+/)[0] : '';
+    recognized = window.KanjiCanvas.recognizeKana(state.strokes)[0] || '';
   } catch {
-    announce('Bộ nhận dạng đang gặp lỗi. Bạn có thể xóa nét rồi thử lại.');
+    showDrawMessage('Bộ nhận dạng đang gặp lỗi. Bạn có thể xóa nét rồi thử lại.');
     return;
   }
   grade(recognized === current()[0], recognized || 'Không nhận dạng được', recognized);
@@ -268,7 +269,7 @@ function renderQuiz() {
       <div class="answer-side"><span class="card-overline">CÂU TRẢ LỜI CỦA BẠN</span>
         ${state.feedback ? (state.mode === 'draw' && state.snapshot ? `<div class="draw-preview"><img alt="Nét vẽ của bạn" src="${state.snapshot}"></div>` : `<div class="answered-text">${escapeHtml(state.feedback.answer)}</div>`) :
           state.mode === 'type' ? `<form id="answer-form"><label for="answer" class="input-label">Nhập phiên âm</label><input id="answer" name="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="latin" maxlength="12" placeholder="Ví dụ: a, ki, shi..." aria-describedby="answer-help" autofocus><small id="answer-help">Nhấn Enter hoặc nút Kiểm tra để trả lời</small><button class="button button-dark check-button" type="submit">Kiểm tra <span aria-hidden="true">→</span></button></form>` :
-          `<div class="draw-wrap"><canvas id="draw-canvas" width="256" height="256" aria-label="Ô vẽ chữ Hiragana bằng chuột hoặc ngón tay"></canvas></div><div class="draw-tools"><button data-action="undo" type="button">↶ &nbsp; Hoàn tác</button><button data-action="clear" type="button">✕ &nbsp; Xóa hết</button></div><button class="button button-dark check-button" data-action="check-draw" type="button">Kiểm tra nét vẽ <span aria-hidden="true">→</span></button>`}
+          `<div class="draw-wrap"><canvas id="draw-canvas" width="256" height="256" aria-label="Ô vẽ chữ Hiragana bằng chuột hoặc ngón tay"></canvas></div><div class="draw-tools"><button data-action="undo" type="button">↶ &nbsp; Hoàn tác</button><button data-action="clear" type="button">✕ &nbsp; Xóa hết</button></div><p id="draw-message" class="draw-message"></p><button class="button button-dark check-button" data-action="check-draw" type="button">Kiểm tra nét vẽ <span aria-hidden="true">→</span></button>`}
       </div>
     </div>
     ${renderFeedback()}
@@ -318,6 +319,7 @@ function drawSetup() {
   canvas.addEventListener('pointerdown', event => {
     if (state.drawing) return;
     event.preventDefault();
+    showDrawMessage('');
     state.drawing = true;
     state.pointerId = event.pointerId;
     canvas.setPointerCapture(event.pointerId);
@@ -348,6 +350,7 @@ function drawSetup() {
 function redrawCanvas() {
   const canvas = document.querySelector('#draw-canvas');
   if (!canvas) return;
+  showDrawMessage('');
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, 256, 256);
   ctx.strokeStyle = '#20333b'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';

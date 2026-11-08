@@ -132,6 +132,8 @@ main{flex:1}
 .draw-tools{display:flex;justify-content:space-between;width:min(100%,256px);margin:9px 0 16px}
 .draw-tools button{border:0;background:transparent;color:#73877b;font-size:12px;font-weight:700;padding:5px}
 .draw-tools button:hover{color:#2f5e4b}
+.draw-message{width:min(100%,256px);margin:-6px 0 12px;color:#8e3c32;font-size:13px;line-height:1.4}
+.draw-message:empty{display:none}
 .draw-panel .check-button{width:min(100%,256px)}
 .draw-preview{display:grid;place-items:center;flex:1}
 .draw-preview img{height:min(256px,45vw);width:min(256px,45vw);border:1px solid #d8ded4;background:#fcfaf5;object-fit:contain}

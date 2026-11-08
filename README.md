@@ -34,4 +34,4 @@ node scripts/check-recognition.mjs
 node scripts/build.mjs
 ```
 
-Chấm vẽ chữ dựa trên so khớp nét với một mẫu tham chiếu cho mỗi chữ, nên có thể nhận nhầm nét viết tay khác nhau. Khi nhận dạng sai, dùng **Tôi đã vẽ đúng** trước khi tự chuyển chữ để sửa thống kê. Bộ nhận dạng và mẫu được ghi nguồn trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Chấm vẽ chữ dựa trên so khớp vị trí, hướng và số nét với nhiều mẫu cho mỗi chữ (lấy từ KanjiCanvas, Tomoe và KanjiVG, gồm cả kiểu viết liền nét), nên vẫn có thể nhận nhầm một số nét viết tay. Khi nhận dạng sai, dùng **Tôi đã vẽ đúng** trước khi tự chuyển chữ để sửa thống kê. Bộ nhận dạng và mẫu được ghi nguồn trong [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
