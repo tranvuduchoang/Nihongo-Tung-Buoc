@@ -1,5 +1,7 @@
 # Nihongo Từng Bước
 
+**Website:** https://tranvuduchoang.github.io/Nihongo-Tung-Buoc/
+
 Website tĩnh để học 46 chữ Hiragana cơ bản bằng hai cách:
 
 - **Nhìn chữ, gõ âm:** nhập Romaji; trả lời đúng/sai được báo ngay rồi tự chuyển chữ.
@@ -17,17 +19,9 @@ python -m http.server 8000
 
 Sau đó mở `http://localhost:8000`.
 
-## Đăng lên GitHub Pages
+## Triển khai GitHub Pages
 
-1. Nối thư mục này với repository GitHub và đẩy nhánh `main`:
-
-   ```sh
-   git remote add origin https://github.com/tranvuduchoang/Nihongo-Tung-Buoc.git
-   git push -u origin main
-   ```
-
-2. Trong **Settings → Pages → Build and deployment**, chọn **GitHub Actions**.
-3. Workflow `.github/workflows/deploy.yml` sẽ đóng gói đúng các file tĩnh trong `dist/` và triển khai mỗi khi đẩy lên `main`.
+Repository đã bật Pages với nguồn **GitHub Actions**. Mỗi lần đẩy lên nhánh `main`, workflow `.github/workflows/deploy.yml` sẽ đóng gói các file tĩnh trong `dist/` và triển khai website.
 
 Không đặt API key hoặc dữ liệu riêng tư trong repository hay mã phía trình duyệt.
 
