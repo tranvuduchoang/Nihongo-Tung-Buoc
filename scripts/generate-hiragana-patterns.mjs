@@ -1,4 +1,4 @@
-// Rebuilds the recognition templates. Each source keeps its own output file and license:
+// Rebuilds the stroke data used to train the model. Each source keeps its own output file and license:
 // node scripts/generate-hiragana-patterns.mjs <kanjicanvas/hiragana> <tomoe/data/handwriting-ja.xml> <kanjivg/kanji>
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,8 +25,23 @@ const PROJECT_SAMPLES = [['ぬ', [
 const context = {window: {}, document: {addEventListener() {}}};
 context.window = context;
 vm.createContext(context);
-for (const file of ['vendor/kanji-canvas.min.js', 'src/recognizer.js']) {
-  vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
+vm.runInContext(fs.readFileSync(path.join(root, 'vendor/kanji-canvas.min.js'), 'utf8'), context);
+
+function densify(stroke) {
+  const dense = [stroke[0]];
+  for (let i = 1; i < stroke.length; i++) {
+    const [a, b] = [stroke[i - 1], stroke[i]];
+    const parts = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2));
+    for (let part = 1; part <= parts; part++) {
+      dense.push([a[0] + (b[0] - a[0]) * part / parts, a[1] + (b[1] - a[1]) * part / parts]);
+    }
+  }
+  return dense;
+}
+
+function strokeFeatures(strokes) {
+  context.KanjiCanvas.recordedPattern_generation = strokes.map(densify);
+  return context.KanjiCanvas.extractFeatures(context.KanjiCanvas.momentNormalize('generation'), 20);
 }
 
 const pointsOf = body => [...body.matchAll(/<point x="(\d+)" y="(\d+)"\s*\/>/g)].map(([, x, y]) => [Number(x), Number(y)]);
@@ -99,7 +114,7 @@ function templates(samples, source) {
       variants.push([...strokes.slice(0, joined), [...strokes[joined], ...strokes[joined + 1]], ...strokes.slice(joined + 2)]);
     }
     for (const variant of variants) {
-      result.push([char, variant.length, rounded(context.KanjiCanvas.kanaFeatures(variant)), source]);
+      result.push([char, variant.length, rounded(strokeFeatures(variant)), source]);
     }
   }
   return result;

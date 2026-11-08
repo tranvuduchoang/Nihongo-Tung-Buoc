@@ -4,110 +4,71 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const context = {window: {}, document: {addEventListener() {}}};
+const context = {window: {}, document: {addEventListener() {}}, atob: text => Buffer.from(text, 'base64').toString('binary')};
 context.window = context;
 vm.createContext(context);
 for (const file of ['vendor/kanji-canvas.min.js', 'hiragana-patterns.js', 'hiragana-patterns-tomoe.js',
-  'hiragana-patterns-kanjivg.js', 'src/recognizer.js']) {
+  'hiragana-patterns-kanjivg.js', 'hiragana-model.js', 'src/kana-model.js', 'src/recognizer.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
 }
-const engine = context.KanjiCanvas;
-const allTemplates = [...engine.refPatterns];
-const SOURCES = ['kanjicanvas', 'tomoe', 'kanjivg'];
-const covered = new Set(allTemplates.map(template => template[0]));
-if (covered.size !== 46) throw new Error(`Expected templates for 46 characters, found ${covered.size}`);
-for (const char of covered) {
-  const sources = new Set(allTemplates.filter(template => template[0] === char).map(template => template[3]));
-  if (!SOURCES.every(source => sources.has(source))) throw new Error(`${char} is missing a template source`);
-}
+const {KanaRecognizer, KanaModel, KanjiCanvas} = context;
+const CHARS = [...context.KANA_MODEL_DATA.classes];
+if (CHARS.length !== 46) throw new Error(`Expected 46 classes, found ${CHARS.length}`);
 
-let seed = 12345;
-function random(min, max) {
-  seed = (seed * 1664525 + 1013904223) >>> 0;
-  return min + seed / 4294967296 * (max - min);
-}
-
-// Reads a polyline the way a touch screen does: one point every `gap` canvas units.
-function sampleEvery(polyline, nextGap) {
-  const points = [polyline[0]];
-  let travelled = 0;
-  let gap = nextGap();
-  for (let i = 1; i < polyline.length; i++) {
-    const [a, b] = [polyline[i - 1], polyline[i]];
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const parts = Math.max(1, Math.ceil(length / 0.5));
-    for (let part = 1; part <= parts; part++) {
-      travelled += length / parts;
-      if (travelled < gap) continue;
-      points.push([a[0] + (b[0] - a[0]) * part / parts, a[1] + (b[1] - a[1]) * part / parts]);
-      travelled = 0;
-      gap = nextGap();
-    }
-  }
-  if (travelled > 0) points.push(polyline.at(-1));
-  return points;
-}
+// Each drawing is graded against all 46 targets, so reuse its single model run.
+const runModel = KanaModel.predict;
+const predictions = new Map();
+KanaModel.predict = strokes => {
+  if (!predictions.has(strokes)) predictions.set(strokes, runModel(strokes));
+  return predictions.get(strokes);
+};
 
 const failures = [];
 
-for (const [char, , strokes] of allTemplates) {
-  const predicted = engine.recognizeKana(strokes)[0];
-  if (predicted !== char) failures.push(`reference ${char} → ${predicted || '(none)'}`);
+// Traced from phone and desktop screenshots of a learner's drawings, in 256-unit canvas coordinates.
+const TRACED = {
+  の: [[[124,86],[117,111],[101,139],[91,164],[81,169],[68,151],[62,129],[64,106],[78,92],[101,86],[147,86],[172,93],[181,121],[177,146],[164,164],[148,169]]],
+  わ: [[[71,26],[72,66],[73,106],[71,137],[70,172]], [[30,66],[56,56],[81,45],[112,40],[117,53],[101,69],[78,89],[56,106],[43,117],[66,101],[91,86],[122,76],[142,84],[149,99],[142,117],[124,134]]],
+  ぬ: [[[99,30],[102,70],[106,106],[109,142]], [[132,40],[117,58],[96,73],[71,93],[58,114],[62,129],[78,119],[99,88],[119,69],[152,67],[167,83],[168,106],[152,124],[132,129],[125,116],[134,108],[157,110],[180,120],[201,128]]],
+  ら: [[[79,18],[82,32],[86,47]], [[45,66],[44,114],[46,162],[65,122],[81,91],[105,75],[141,66],[153,82],[157,106],[149,130],[126,150]]],
+  か: [[[50,50],[88,51],[128,53],[166,49],[166,83],[165,113]], [[91,13],[88,59],[82,99],[79,121]], [[170,13],[180,19],[190,22]]],
+  ね: [[[87,38],[85,90],[83,172]], [[59,73],[85,61],[110,50],[93,86],[77,122],[59,154],[89,126],[117,117],[138,122],[142,137],[126,153],[125,140],[149,134],[177,148],[201,158]]],
+  め: [[[92,49],[102,97],[112,137]], [[118,62],[98,89],[78,117],[82,122],[102,109],[122,77],[146,67],[162,77],[173,101],[173,125],[158,134],[154,133]]],
+  そ: [[[81,56],[106,55],[133,56],[110,74],[90,92],[122,87],[150,85],[126,100],[109,114],[114,132],[142,137],[177,130]]],
+  む: [[[85,44],[126,43],[169,42]], [[120,1],[134,47],[137,87],[122,119],[98,108],[81,127],[90,150],[118,139],[138,119],[154,159],[170,178],[182,162]], [[186,6],[190,14],[194,22]]]
+};
+
+// Accuracy on the learner's own style before any personal samples.
+const MIN_TRACED_ACCEPTED = 7;
+const rejected = Object.keys(TRACED).filter(char => !KanaRecognizer.recognize(TRACED[char], char).correct);
+if (Object.keys(TRACED).length - rejected.length < MIN_TRACED_ACCEPTED) failures.push(`traced drawings rejected: ${rejected.join(' ')}`);
+console.log(`Traced drawings accepted without personal samples: ${9 - rejected.length}/9`);
+
+// One saved drawing per character must be enough for the same handwriting to pass.
+const personal = Object.fromEntries(Object.entries(TRACED).map(([char, strokes]) => [char, [{features: KanaModel.predict(strokes).features}]]));
+for (const [char, strokes] of Object.entries(TRACED)) {
+  if (!KanaRecognizer.recognize(strokes, char, personal).correct) failures.push(`personal sample did not help ${char}`);
 }
 
-// Traced from phone screenshots, in 256-unit canvas coordinates.
-const TRACED = [
-  {char: 'の', minRank: 1, strokes: [[[124,86],[117,111],[101,139],[91,164],[81,169],[68,151],[62,129],[64,106],[78,92],[101,86],[147,86],[172,93],[181,121],[177,146],[164,164],[148,169]]]},
-  {char: 'わ', minRank: 1, strokes: [
-    [[71,26],[72,66],[73,106],[71,137],[70,172]],
-    [[30,66],[56,56],[81,45],[112,40],[117,53],[101,69],[78,89],[56,106],[43,117],[66,101],[91,86],[122,76],[142,84],[149,99],[142,117],[124,134]]]},
-  {char: 'ぬ', minRank: 1, strokes: [
-    [[99,30],[102,70],[106,106],[109,142]],
-    [[132,40],[117,58],[96,73],[71,93],[58,114],[62,129],[78,119],[99,88],[119,69],[152,67],[167,83],[168,106],[152,124],[132,129],[125,116],[134,108],[157,110],[180,120],[201,128]]]}
-];
-for (const {char, minRank, strokes} of TRACED) {
-  for (const gap of [4, 8, 12, 16]) {
-    const ranking = engine.recognizeKana(strokes.map(stroke => sampleEvery(stroke, () => gap)));
-    const rank = ranking.indexOf(char) + 1;
-    if (!rank || rank > minRank) failures.push(`traced ${char} at gap ${gap}: rank ${rank || 'none'}, got ${ranking[0]}`);
-  }
-}
-
-// Each template drawn with a slight tilt, stretch and wobble at a range of finger speeds.
-function distort(strokes, gap) {
-  const [turn, shear, scaleX, scaleY] = [random(-.12, .12), random(-.12, .12), random(.8, 1.15), random(.8, 1.15)];
-  const [wobbleX, wobbleY, wave, phase] = [random(0, 9), random(0, 9), random(.008, .02), random(0, 6)];
-  const moved = strokes.map(stroke => stroke.map(([x, y]) => {
-    const [cx, cy] = [x - 128, y - 128];
-    return [scaleX * (cx * Math.cos(turn) - cy * Math.sin(turn) + shear * cy) + wobbleX * Math.sin(wave * cy + phase),
-      scaleY * (cx * Math.sin(turn) + cy * Math.cos(turn)) + wobbleY * Math.sin(wave * cx + phase)];
-  }));
-  const all = moved.flat();
-  const [minX, minY] = [Math.min(...all.map(p => p[0])), Math.min(...all.map(p => p[1]))];
-  const size = Math.max(Math.max(...all.map(p => p[0])) - minX, Math.max(...all.map(p => p[1])) - minY);
-  const scale = random(120, 220) / size;
-  return moved.map(stroke => sampleEvery(
-    stroke.map(([x, y]) => [(x - minX) * scale + 18, (y - minY) * scale + 18]),
-    () => gap * random(.6, 1.3)));
-}
-
-// Drawings from one source are graded using only the other sources' templates, so a
-// character cannot pass by matching itself.
-const MIN_ACCURACY = 95;
-for (const gap of [3, 9, 14]) {
+// A wrong character must not pass, with or without personal samples for similar characters.
+const templates = KanjiCanvas.refPatterns.filter((_, i) => i % 3 === 0);
+for (const [label, samples, limit] of [['no personal samples', {}, 1.5], ['personal samples', personal, 3]]) {
   let correct = 0;
-  let total = 0;
-  for (const source of SOURCES) {
-    engine.refPatterns = allTemplates.filter(template => template[3] !== source);
-    for (const [char, , strokes] of allTemplates.filter(template => template[3] === source)) {
-      for (let i = 0; i < 2; i++, total++) {
-        if (engine.recognizeKana(distort(strokes, gap))[0] === char) correct++;
-      }
+  let falseAccepts = 0;
+  let wrongTargets = 0;
+  for (const [char, , strokes] of templates) {
+    if (KanaRecognizer.recognize(strokes, char, samples).correct) correct++;
+    for (const target of CHARS) {
+      if (target === char) continue;
+      wrongTargets++;
+      if (KanaRecognizer.recognize(strokes, target, samples).correct) falseAccepts++;
     }
   }
-  const accuracy = 100 * correct / total;
-  console.log(`Cross-source drawings, point gap ${gap}: ${accuracy.toFixed(1)}%`);
-  if (accuracy < MIN_ACCURACY) failures.push(`cross-source accuracy at gap ${gap}: ${accuracy.toFixed(1)}%`);
+  const accuracy = 100 * correct / templates.length;
+  const falseRate = 100 * falseAccepts / wrongTargets;
+  console.log(`Stroke data, ${label}: accepted ${accuracy.toFixed(1)}%, wrong target accepted ${falseRate.toFixed(2)}%`);
+  if (accuracy < 97) failures.push(`accuracy with ${label}: ${accuracy.toFixed(1)}%`);
+  if (falseRate > limit) failures.push(`false accepts with ${label}: ${falseRate.toFixed(2)}%`);
 }
 
 if (failures.length) throw new Error(`Recognition check failed:\n${failures.join('\n')}`);

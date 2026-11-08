@@ -1,5 +1,11 @@
 # Third-party notices
 
+## Handwriting model
+
+`hiragana-model.js` is a neural network trained on the stroke data listed below (Tomoe, KanjiVG, KanjiCanvas) and on glyphs rendered from Japanese fonts distributed through [Google Fonts](https://github.com/google/fonts) under the [SIL Open Font License 1.1](https://openfontlicense.org/). The model weights are distributed under the terms of the data they derive from. Handwriting drawn in the app stays in the learner's browser.
+
+Fonts used for training: Klee One, Yomogi, Zen Kurenaido, Hachi Maru Pop, Yusei Magic, Kiwi Maru, Zen Maru Gothic, Mochiy Pop One, Darumadrop One, Potta One, RocknRoll One, Reggae One, New Tegomin, Slackside One, Yuji Syuku, Yuji Boku, Yuji Mai, Zen Antique, Sawarabi Gothic, Sawarabi Mincho, M PLUS Rounded 1c, Kaisei Opti, Kaisei Tokumin, Shippori Mincho, Noto Sans JP, Noto Serif JP, BIZ UDGothic, Zen Kaku Gothic New, Hina Mincho, Cherry Bomb One, Stick, Murecho, Zen Old Mincho.
+
 ## Tomoe
 
 `hiragana-patterns-tomoe.js` is derived from `data/handwriting-ja.xml` in [Tomoe](https://sourceforge.net/projects/tomoe/) 0.6.0 and is distributed under the [GNU Lesser General Public License, version 2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html). The file holds stroke templates computed from the original strokes.
@@ -10,7 +16,7 @@
 
 ## KanjiCanvas
 
-Handwriting recognition uses [KanjiCanvas](http://github.com/asdfjkl/kanjicanvas) by Dominik Klein and contributors. `vendor/kanji-canvas.min.js` is copied from its repository. The templates tagged `kanjicanvas` in `hiragana-patterns.js` are generated from its `hiragana/*.xml` examples. Both are distributed under the following MIT license.
+Stroke data was prepared with [KanjiCanvas](http://github.com/asdfjkl/kanjicanvas) by Dominik Klein and contributors. `vendor/kanji-canvas.min.js` is copied from its repository. The templates tagged `kanjicanvas` in `hiragana-patterns.js` are generated from its `hiragana/*.xml` examples. Both are distributed under the following MIT license.
 
 Copyright (c) 2019 Dominik Klein, Kanji Canvas
 

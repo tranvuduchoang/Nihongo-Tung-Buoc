@@ -12,13 +12,15 @@ const KANA = [
 ];
 
 const STORAGE_KEY = 'kana-study-v1';
+const SAMPLES_KEY = 'kana-handwriting-v1';
+const MAX_SAMPLES_PER_CHAR = 20;
 const FEEDBACK_DELAY_MS = 60_000;
 const app = document.querySelector('#app');
 const announcer = document.querySelector('#announcer');
 const state = {
   screen: 'home', mode: 'type', queue: [], cursor: 0,
   results: {}, feedback: null, feedbackUntil: 0, snapshot: '', strokes: [], drawing: false,
-  pointerId: null, timer: null
+  pointerId: null, timer: null, samples: {}, samplesModel: null
 };
 
 function escapeHtml(value) {
@@ -64,7 +66,7 @@ function restore() {
       if (saved && typeof saved.correct === 'boolean' && Number.isFinite(until) &&
           until > now && until <= now + FEEDBACK_DELAY_MS && clean[data.queue[cursor]]) {
         feedback = {correct: saved.correct, answer: String(saved.answer || '').slice(0, 20),
-          recognized: String(saved.recognized || '').slice(0, 10), corrected: Boolean(saved.corrected)};
+          recognized: String(saved.recognized || '').slice(0, 10)};
         feedbackUntil = until;
       } else {
         cursor++;
@@ -180,28 +182,82 @@ function recognizeDrawing() {
   if (Math.max(width, height) < 38) {
     showDrawMessage('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return;
   }
-  let recognized = '';
+  const target = current()[0];
+  let result;
   try {
-    if (!window.KanjiCanvas?.refPatterns?.length) throw new Error('Recognition data unavailable');
-    recognized = window.KanjiCanvas.recognizeKana(state.strokes)[0] || '';
+    result = window.KanaRecognizer.recognize(state.strokes, target, state.samples);
   } catch {
     showDrawMessage('Bộ nhận dạng đang gặp lỗi. Bạn có thể xóa nét rồi thử lại.');
     return;
   }
-  grade(recognized === current()[0], recognized || 'Không nhận dạng được', recognized);
+  if (result.correct) addSample(target, state.strokes, result.features);
+  grade(result.correct, result.recognized, result.recognized);
 }
 
-function correctRecognition() {
-  if (!state.feedback || state.mode !== 'draw' || state.feedback.correct) return;
-  clearTimer();
-  const index = state.queue[state.cursor];
-  state.results[index] = {correct: true, answer: 'Tự xác nhận'};
-  state.feedback = {...state.feedback, correct: true, corrected: true};
-  state.feedbackUntil = Date.now() + FEEDBACK_DELAY_MS;
-  save();
+function loadSamples() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAMPLES_KEY) || 'null');
+    if (!saved || typeof saved.samples !== 'object') return;
+    for (const [char, list] of Object.entries(saved.samples)) {
+      if (!KANA.some(([kana]) => kana === char) || !Array.isArray(list)) continue;
+      const valid = list.filter(sample => Array.isArray(sample?.strokes) && sample.strokes.length && Array.isArray(sample.features));
+      if (valid.length) state.samples[char] = valid;
+    }
+    state.samplesModel = saved.modelVersion;
+  } catch { /* Ignore stale or malformed browser data. */ }
+}
+
+function saveSamples() {
+  try {
+    localStorage.setItem(SAMPLES_KEY, JSON.stringify({modelVersion: window.KANA_MODEL_DATA?.version, samples: state.samples}));
+  } catch { /* Storage may be full or blocked; samples still help for this session. */ }
+}
+
+function addSample(char, strokes, features) {
+  const list = state.samples[char] ||= [];
+  list.push({
+    strokes: strokes.map(stroke => stroke.map(([x, y]) => [Math.round(x), Math.round(y)])),
+    features: features.map(value => Math.round(value * 1000) / 1000)
+  });
+  if (list.length > MAX_SAMPLES_PER_CHAR) list.shift();
+  saveSamples();
+}
+
+function sampleCount() {
+  return Object.values(state.samples).reduce((total, list) => total + list.length, 0);
+}
+
+// A retrained model has different features, so saved drawings are re-read in the background.
+function refreshSampleFeatures() {
+  const version = window.KANA_MODEL_DATA?.version;
+  if (!version || state.samplesModel === version || !sampleCount()) return;
+  const pending = Object.values(state.samples).flat();
+  const step = () => {
+    const sample = pending.pop();
+    if (!sample) { state.samplesModel = version; saveSamples(); return; }
+    try { sample.features = window.KanaModel.predict(sample.strokes).features.map(value => Math.round(value * 1000) / 1000); }
+    catch { return; }
+    setTimeout(step, 0);
+  };
+  setTimeout(step, 0);
+}
+
+function exportSamples() {
+  const samples = Object.fromEntries(Object.entries(state.samples).map(([char, list]) =>
+    [char, list.map(({strokes}) => ({strokes}))]));
+  const file = new Blob([JSON.stringify({format: 'kana-handwriting', exportedAt: new Date().toISOString(), samples})], {type: 'application/json'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(file);
+  link.download = 'mau-chu-viet-cua-toi.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function clearSamples() {
+  if (!window.confirm('Xóa toàn bộ mẫu chữ đã lưu? Máy sẽ phải học lại nét chữ của bạn từ đầu.')) return;
+  state.samples = {};
+  saveSamples();
   render();
-  announce('Đã sửa đánh giá thành đúng. Bạn có thể chọn chữ tiếp theo.');
-  state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
 }
 
 function renderHome() {
@@ -234,6 +290,7 @@ function renderHome() {
       </div>
       ${canResume ? `<button class="resume-button" data-action="resume">↺ &nbsp; Tiếp tục lượt học đang dở (${state.cursor}/${state.queue.length})</button>` : ''}
       ${canViewResults ? `<button class="resume-button" data-action="view-results">↗ &nbsp; Xem kết quả lượt gần nhất</button>` : ''}
+      ${sampleCount() ? `<div class="samples-panel"><p>Máy đã lưu <b>${sampleCount()}</b> mẫu chữ của bạn để quen nét viết. Mẫu chỉ nằm trên trình duyệt này.</p><div><button data-action="export-samples" type="button">Tải mẫu xuống</button><button data-action="clear-samples" type="button">Xóa mẫu</button></div></div>` : ''}
     </section>`;
 }
 
@@ -245,12 +302,11 @@ function renderFeedback() {
   return `<div class="feedback ${right ? 'is-right' : 'is-wrong'}" role="alert">
     <div class="feedback-icon" aria-hidden="true">${right ? '✓' : '×'}</div>
     <div class="feedback-copy"><strong>${right ? 'Chính xác!' : 'Chưa đúng rồi'}</strong><p>${right ?
-      (f.corrected ? 'Đã sửa đánh giá theo xác nhận của bạn.' : 'Bạn đã nhớ đúng chữ này.') :
+      'Bạn đã nhớ đúng chữ này.' :
       `Đáp án đúng là <b>${item[0]} — ${item[1]}</b>.`}</p>
-      ${!right && state.mode === 'draw' ? `<small>Máy nhận dạng: ${escapeHtml(f.recognized || 'không rõ')}. Nếu máy chấm nhầm, hãy sửa đánh giá.</small>` : ''}
+      ${!right && state.mode === 'draw' ? `<small>Máy nhận dạng: ${escapeHtml(f.recognized || 'không rõ')}.</small>` : ''}
     </div>
     <div class="feedback-actions">
-      ${!right && state.mode === 'draw' ? `<button class="feedback-correct" data-action="correct-recognition">Tôi đã vẽ đúng</button>` : ''}
       <button class="button button-dark feedback-next" data-action="next">Chữ tiếp theo <span aria-hidden="true">→</span></button>
     </div>
   </div>`;
@@ -385,7 +441,8 @@ app.addEventListener('click', event => {
   else if (action === 'home') home();
   else if (action === 'next') next();
   else if (action === 'check-draw') recognizeDrawing();
-  else if (action === 'correct-recognition') correctRecognition();
+  else if (action === 'export-samples') exportSamples();
+  else if (action === 'clear-samples') clearSamples();
   else if (action === 'undo' && state.strokes.length) { state.strokes.pop(); redrawCanvas(); }
   else if (action === 'clear') { state.strokes = []; redrawCanvas(); }
   else if (action === 'retry') start(state.mode, true);
@@ -393,5 +450,7 @@ app.addEventListener('click', event => {
 });
 
 restore();
+loadSamples();
+refreshSampleFeatures();
 render();
 if (state.feedback) state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
