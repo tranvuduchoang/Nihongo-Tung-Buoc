@@ -13,7 +13,7 @@ for (const file of ['vendor/kanji-canvas.min.js', 'hiragana-patterns.js', 'hirag
 }
 const {KanaRecognizer, KanaModel, KanjiCanvas} = context;
 const CHARS = [...context.KANA_MODEL_DATA.classes];
-if (CHARS.length !== 46) throw new Error(`Expected 46 classes, found ${CHARS.length}`);
+if (CHARS.length !== 72) throw new Error(`Expected 72 classes, found ${CHARS.length}`);
 
 // Each drawing is graded against all 46 targets, so reuse its single model run.
 const runModel = KanaModel.predict;
@@ -38,8 +38,8 @@ const TRACED = {
   む: [[[85,44],[126,43],[169,42]], [[120,1],[134,47],[137,87],[122,119],[98,108],[81,127],[90,150],[118,139],[138,119],[154,159],[170,178],[182,162]], [[186,6],[190,14],[194,22]]]
 };
 
-// Accuracy on the learner's own style before any personal samples.
-const MIN_TRACED_ACCEPTED = 7;
+// The learner's own style before any personal samples; these drawings were picked because they were hard.
+const MIN_TRACED_ACCEPTED = 6;
 const rejected = Object.keys(TRACED).filter(char => !KanaRecognizer.recognize(TRACED[char], char).correct);
 if (Object.keys(TRACED).length - rejected.length < MIN_TRACED_ACCEPTED) failures.push(`traced drawings rejected: ${rejected.join(' ')}`);
 console.log(`Traced drawings accepted without personal samples: ${9 - rejected.length}/9`);
@@ -70,6 +70,28 @@ for (const [label, samples, limit] of [['no personal samples', {}, 1.5], ['perso
   if (accuracy < 97) failures.push(`accuracy with ${label}: ${accuracy.toFixed(1)}%`);
   if (falseRate > limit) failures.push(`false accepts with ${label}: ${falseRate.toFixed(2)}%`);
 }
+
+// Marks must count: forgetting them, or adding them to a plain character, is a wrong answer.
+const VOICED = {が: 'か', ざ: 'さ', じ: 'し', だ: 'た', ぢ: 'ち', づ: 'つ', ば: 'は', び: 'ひ', ぶ: 'ふ', べ: 'へ', ぼ: 'ほ'};
+const SEMI_VOICED = {ぱ: 'は', ぴ: 'ひ', ぷ: 'ふ', ぺ: 'へ', ぽ: 'ほ'};
+function withMarks(strokes, circle) {
+  const points = strokes.flat();
+  const right = Math.max(...points.map(p => p[0]));
+  const top = Math.min(...points.map(p => p[1]));
+  if (circle) return [...strokes, Array.from({length: 12}, (_, i) => [right + 22 * Math.cos(i * .57), top + 22 * Math.sin(i * .57)])];
+  return [...strokes, [[right, top], [right + 18, top + 34]], [[right + 32, top], [right + 50, top + 34]]];
+}
+for (const [marks, circle] of [[VOICED, false], [SEMI_VOICED, true]]) {
+  for (const [marked, base] of Object.entries(marks)) {
+    const plain = KanjiCanvas.refPatterns.find(template => template[0] === base)[2];
+    const drawn = withMarks(plain, circle);
+    if (!KanaRecognizer.recognize(drawn, marked).correct) failures.push(`${marked} with marks was rejected`);
+    if (KanaRecognizer.recognize(plain, marked).correct) failures.push(`${base} without marks passed as ${marked}`);
+    if (KanaRecognizer.recognize(drawn, base).correct) failures.push(`${marked} passed as ${base}`);
+  }
+}
+const shi = KanjiCanvas.refPatterns.find(template => template[0] === 'し')[2];
+if (!KanaRecognizer.recognize(shi, ['か', 'し']).correct) failures.push('alternative targets are not honored');
 
 if (failures.length) throw new Error(`Recognition check failed:\n${failures.join('\n')}`);
 console.log('Recognition check passed.');

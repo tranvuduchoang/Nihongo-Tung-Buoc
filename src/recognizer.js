@@ -7,7 +7,8 @@
 
   const similarity = (a, b) => a.reduce((sum, value, i) => sum + value * b[i], 0);
 
-  function recognize(strokes, target, samples = {}) {
+  // `targets` lists the characters that answer the question, usually just one.
+  function recognize(strokes, targets, samples = {}) {
     const {logProbabilities, features} = window.KanaModel.predict(strokes);
     const scores = new Map(logProbabilities);
     for (const [char, saved] of Object.entries(samples)) {
@@ -16,8 +17,8 @@
       scores.set(char, scores.get(char) + PERSONAL_WEIGHT * match);
     }
     const [best, bestScore] = [...scores].reduce((top, entry) => entry[1] > top[1] ? entry : top);
-    const correct = bestScore - scores.get(target) <= ACCEPT_MARGIN;
-    return {correct, recognized: correct ? target : best, features};
+    const matched = [targets].flat().find(target => bestScore - scores.get(target) <= ACCEPT_MARGIN);
+    return {correct: matched !== undefined, recognized: matched ?? best, features};
   }
 
   window.KanaRecognizer = {recognize};

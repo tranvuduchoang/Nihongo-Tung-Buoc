@@ -1,15 +1,47 @@
-const KANA = [
-  ['あ','a'],['い','i'],['う','u'],['え','e'],['お','o'],
-  ['か','ka'],['き','ki'],['く','ku'],['け','ke'],['こ','ko'],
-  ['さ','sa'],['し','shi','si'],['す','su'],['せ','se'],['そ','so'],
-  ['た','ta'],['ち','chi','ti'],['つ','tsu','tu'],['て','te'],['と','to'],
-  ['な','na'],['に','ni'],['ぬ','nu'],['ね','ne'],['の','no'],
-  ['は','ha'],['ひ','hi'],['ふ','fu','hu'],['へ','he'],['ほ','ho'],
-  ['ま','ma'],['み','mi'],['む','mu'],['め','me'],['も','mo'],
-  ['や','ya'],['ゆ','yu'],['よ','yo'],
-  ['ら','ra'],['り','ri'],['る','ru'],['れ','re'],['ろ','ro'],
-  ['わ','wa'],['を','wo'],['ん','n']
+const GROUPS = [
+  {id: 'basic', name: 'Âm đơn', sample: 'あ', hint: 'Bảng chữ cái gốc', items: [
+    ['あ','a'],['い','i'],['う','u'],['え','e'],['お','o'],
+    ['か','ka'],['き','ki'],['く','ku'],['け','ke'],['こ','ko'],
+    ['さ','sa'],['し','shi','si'],['す','su'],['せ','se'],['そ','so'],
+    ['た','ta'],['ち','chi','ti'],['つ','tsu','tu'],['て','te'],['と','to'],
+    ['な','na'],['に','ni'],['ぬ','nu'],['ね','ne'],['の','no'],
+    ['は','ha'],['ひ','hi'],['ふ','fu','hu'],['へ','he'],['ほ','ho'],
+    ['ま','ma'],['み','mi'],['む','mu'],['め','me'],['も','mo'],
+    ['や','ya'],['ゆ','yu'],['よ','yo'],
+    ['ら','ra'],['り','ri'],['る','ru'],['れ','re'],['ろ','ro'],
+    ['わ','wa'],['を','wo'],['ん','n']
+  ]},
+  {id: 'voiced', name: 'Âm đơn có dấu biến âm', sample: 'が', hint: 'が ざ だ ば ぱ', items: [
+    ['が','ga'],['ぎ','gi'],['ぐ','gu'],['げ','ge'],['ご','go'],
+    ['ざ','za'],['じ','ji','zi'],['ず','zu'],['ぜ','ze'],['ぞ','zo'],
+    ['だ','da'],['ぢ','dji','ji','di'],['づ','dzu','zu','du'],['で','de'],['ど','do'],
+    ['ば','ba'],['び','bi'],['ぶ','bu'],['べ','be'],['ぼ','bo'],
+    ['ぱ','pa'],['ぴ','pi'],['ぷ','pu'],['ぺ','pe'],['ぽ','po'],
+    ['ゔ','vu']
+  ]},
+  {id: 'combo', name: 'Âm ghép', sample: 'きゃ', hint: 'きゃ しゃ ちゃ', items: [
+    ['きゃ','kya'],['きゅ','kyu'],['きょ','kyo'],
+    ['しゃ','sha','sya'],['しゅ','shu','syu'],['しょ','sho','syo'],
+    ['ちゃ','cha','tya','cya'],['ちゅ','chu','tyu','cyu'],['ちょ','cho','tyo','cyo'],
+    ['にゃ','nya'],['にゅ','nyu'],['にょ','nyo'],
+    ['ひゃ','hya'],['ひゅ','hyu'],['ひょ','hyo'],
+    ['みゃ','mya'],['みゅ','myu'],['みょ','myo'],
+    ['りゃ','rya'],['りゅ','ryu'],['りょ','ryo']
+  ]},
+  {id: 'voiced-combo', name: 'Âm ghép có dấu biến âm', sample: 'ぎゃ', hint: 'ぎゃ じゃ びゃ ぴゃ', items: [
+    ['ぎゃ','gya'],['ぎゅ','gyu'],['ぎょ','gyo'],
+    ['じゃ','ja','zya','jya'],['じゅ','ju','zyu','jyu'],['じょ','jo','zyo','jyo'],
+    ['ぢゃ','ja','dya','dja'],['ぢゅ','ju','dyu','dju'],['ぢょ','jo','dyo','djo'],
+    ['びゃ','bya'],['びゅ','byu'],['びょ','byo'],
+    ['ぴゃ','pya'],['ぴゅ','pyu'],['ぴょ','pyo']
+  ]}
 ];
+
+const KANA = GROUPS.flatMap(group => group.items);
+let nextIndex = 0;
+for (const group of GROUPS) group.indexes = group.items.map(() => nextIndex++);
+const SMALL_KANA = {'ゃ': 'や', 'ゅ': 'ゆ', 'ょ': 'よ'};
+const FULL_TO_SMALL = {'や': 'ゃ', 'ゆ': 'ゅ', 'よ': 'ょ'};
 
 const STORAGE_KEY = 'kana-study-v1';
 const SAMPLES_KEY = 'kana-handwriting-v1';
@@ -19,7 +51,8 @@ const app = document.querySelector('#app');
 const announcer = document.querySelector('#announcer');
 const state = {
   screen: 'home', mode: 'type', queue: [], cursor: 0,
-  results: {}, feedback: null, feedbackUntil: 0, snapshot: '', strokes: [], drawing: false,
+  results: {}, feedback: null, feedbackUntil: 0, snapshots: [], cellStrokes: [], strokeOrder: [], drawing: false,
+  groups: ['basic'],
   pointerId: null, timer: null, samples: {}, samplesModel: null
 };
 
@@ -32,7 +65,7 @@ function announce(message) { announcer.textContent = message; }
 function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      screen: state.screen, mode: state.mode, queue: state.queue,
+      screen: state.screen, mode: state.mode, queue: state.queue, groups: state.groups,
       cursor: state.cursor, results: state.results, pendingAdvance: Boolean(state.feedback),
       feedback: state.feedback, feedbackUntil: state.feedbackUntil
     }));
@@ -56,6 +89,8 @@ function restore() {
         clean[n] = {correct: result.correct, answer: String(result.answer || '').slice(0, 20)};
       }
     }
+    const groups = Array.isArray(data.groups) ? data.groups.filter(id => GROUPS.some(group => group.id === id)) : [];
+    if (groups.length) state.groups = groups;
     let cursor = data.cursor;
     let feedback = null;
     let feedbackUntil = 0;
@@ -94,8 +129,8 @@ function clearTimer() {
 
 function start(mode, retry = false) {
   clearTimer();
-  const targets = retry ? KANA.map((_, i) => i).filter(i => state.results[i]?.correct === false)
-    : KANA.map((_, i) => i);
+  const selected = GROUPS.filter(group => state.groups.includes(group.id)).flatMap(group => group.indexes);
+  const targets = retry ? KANA.map((_, i) => i).filter(i => state.results[i]?.correct === false) : selected;
   if (!targets.length) return;
   state.mode = mode;
   state.queue = shuffle(targets);
@@ -104,20 +139,38 @@ function start(mode, retry = false) {
   state.screen = 'quiz';
   state.feedback = null;
   state.feedbackUntil = 0;
-  state.strokes = [];
+  resetDrawing();
   save();
   render();
 }
 
 function current() { return KANA[state.queue[state.cursor]]; }
 
+function resetDrawing() {
+  state.snapshots = [];
+  state.cellStrokes = [];
+  state.strokeOrder = [];
+}
+
+function cellCount(item) { return [...item[0]].length; }
+
+// Each drawing cell holds one character; small ゃゅょ are recognized as their full-size shapes.
+function cellTargets(item) {
+  const chars = [...item[0]];
+  return chars.map((char, cell) => {
+    if (SMALL_KANA[char]) return [SMALL_KANA[char]];
+    // じゃ and ぢゃ share the romaji "ja", so either spelling answers the prompt.
+    if (chars.length > 1 && cell === 0 && (char === 'じ' || char === 'ぢ')) return ['じ', 'ぢ'];
+    return [char];
+  });
+}
+
 function home() {
   clearTimer();
   const finishedByFeedback = Boolean(state.feedback && state.cursor + 1 >= state.queue.length);
   if (state.feedback) {
     state.cursor++;
-    state.strokes = [];
-    state.snapshot = '';
+    resetDrawing();
   }
   state.feedback = null;
   state.feedbackUntil = 0;
@@ -132,8 +185,7 @@ function next() {
   state.cursor++;
   state.feedback = null;
   state.feedbackUntil = 0;
-  state.snapshot = '';
-  state.strokes = [];
+  resetDrawing();
   state.screen = state.cursor >= state.queue.length ? 'results' : 'quiz';
   save();
   render();
@@ -146,8 +198,7 @@ function grade(correct, answer, recognized = '') {
   state.feedback = {correct, answer, recognized};
   state.feedbackUntil = Date.now() + FEEDBACK_DELAY_MS;
   if (state.mode === 'draw') {
-    const canvas = document.querySelector('#draw-canvas');
-    state.snapshot = canvas?.toDataURL('image/png') || '';
+    state.snapshots = [...document.querySelectorAll('.draw-canvas')].map(canvas => canvas.toDataURL('image/png'));
   }
   save();
   render();
@@ -173,25 +224,31 @@ function showDrawMessage(message) {
 }
 
 function recognizeDrawing() {
-  if (!state.strokes.length) { showDrawMessage('Hãy vẽ chữ trước khi kiểm tra.'); return; }
-  const all = state.strokes.flat();
-  const xs = all.map(p => p[0]);
-  const ys = all.map(p => p[1]);
-  const width = Math.max(...xs) - Math.min(...xs);
-  const height = Math.max(...ys) - Math.min(...ys);
-  if (Math.max(width, height) < 38) {
-    showDrawMessage('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return;
+  const targets = cellTargets(current());
+  const cells = targets.map((_, cell) => state.cellStrokes[cell] || []);
+  if (cells.some(strokes => !strokes.length)) {
+    showDrawMessage(targets.length > 1 ? 'Hãy vẽ đủ cả hai ô trước khi kiểm tra.' : 'Hãy vẽ chữ trước khi kiểm tra.');
+    return;
   }
-  const target = current()[0];
-  let result;
+  const tooSmall = cells.some(strokes => {
+    const all = strokes.flat();
+    const xs = all.map(p => p[0]);
+    const ys = all.map(p => p[1]);
+    return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) < 38;
+  });
+  if (tooSmall) { showDrawMessage('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return; }
+  let results;
   try {
-    result = window.KanaRecognizer.recognize(state.strokes, target, state.samples);
+    results = cells.map((strokes, cell) => window.KanaRecognizer.recognize(strokes, targets[cell], state.samples));
   } catch {
     showDrawMessage('Bộ nhận dạng đang gặp lỗi. Bạn có thể xóa nét rồi thử lại.');
     return;
   }
-  if (result.correct) addSample(target, state.strokes, result.features);
-  grade(result.correct, result.recognized, result.recognized);
+  results.forEach((result, cell) => {
+    if (result.correct) addSample(result.recognized, cells[cell], result.features);
+  });
+  const shown = results.map((result, cell) => cell > 0 && FULL_TO_SMALL[result.recognized] || result.recognized).join('');
+  grade(results.every(result => result.correct), shown, shown);
 }
 
 function loadSamples() {
@@ -260,6 +317,45 @@ function clearSamples() {
   render();
 }
 
+function selectedCount() {
+  return GROUPS.filter(group => state.groups.includes(group.id)).reduce((total, group) => total + group.items.length, 0);
+}
+
+function renderGroupCard(group) {
+  const selected = state.groups.includes(group.id);
+  return `<button class="group-card ${selected ? 'selected' : ''}" data-action="toggle-group" data-group="${group.id}" type="button" aria-pressed="${selected}">
+    <span class="group-check" aria-hidden="true">${selected ? '✓' : ''}</span>
+    <span class="group-sample">${group.sample}</span>
+    <strong>${group.name}</strong>
+    <small>${group.hint} · ${group.items.length} âm</small>
+  </button>`;
+}
+
+function toggleGroup(id) {
+  if (state.groups.includes(id)) {
+    if (state.groups.length === 1) {
+      document.querySelector('.group-summary').textContent = 'Cần chọn ít nhất một nhóm âm.';
+      announce('Cần chọn ít nhất một nhóm âm.');
+      return;
+    }
+    state.groups = state.groups.filter(group => group !== id);
+  } else {
+    state.groups = [...state.groups, id];
+  }
+  save();
+  render();
+  document.querySelector(`[data-group="${id}"]`)?.focus({preventScroll: true});
+}
+
+function renderDrawCells(item) {
+  const count = cellCount(item);
+  const cells = Array.from({length: count}, (_, cell) => `<div class="draw-cell ${cell ? 'is-small' : ''}">
+      <div class="draw-wrap"><canvas class="draw-canvas" data-cell="${cell}" width="256" height="256" aria-label="${count > 1 ? (cell ? 'Ô vẽ chữ nhỏ' : 'Ô vẽ chữ chính') : 'Ô vẽ chữ Hiragana'} bằng chuột hoặc ngón tay"></canvas></div>
+      ${count > 1 ? `<span class="cell-label">${cell ? 'Chữ nhỏ' : 'Chữ chính'}</span>` : ''}
+    </div>`).join('');
+  return `<div class="draw-cells">${cells}</div>`;
+}
+
 function renderHome() {
   const canResume = state.queue.length && state.cursor < state.queue.length;
   const canViewResults = state.queue.length && state.cursor >= state.queue.length &&
@@ -270,17 +366,22 @@ function renderHome() {
         <div class="eyebrow"><span class="eyebrow-line"></span> BẮT ĐẦU HÀNH TRÌNH CỦA BẠN</div>
         <h1>Mỗi ngày một chút.<br><em>Tiếng Nhật</em> gần hơn.</h1>
         <p class="hero-lead">Luyện nhận diện và viết từng chữ cái. Một lượt học nhỏ, một bước tiến thật rõ ràng.</p>
-        <div class="hero-points"><span><b>46</b> chữ Hiragana cơ bản</span><span class="point-dot"></span><span><b>2</b> cách luyện tập</span></div>
+        <div class="hero-points"><span><b>108</b> âm Hiragana</span><span class="point-dot"></span><span><b>2</b> cách luyện tập</span></div>
       </div>
       <div class="hero-art" aria-hidden="true"><span class="art-ring ring-one"></span><span class="art-ring ring-two"></span><div class="art-card card-back">い</div><div class="art-card card-front"><span class="art-label">HIRAGANA 01 / 46</span><strong>あ</strong><span class="art-romaji">a</span></div><span class="art-caption">はじめましょう <i>✳</i></span></div>
     </section>
     <section class="choose-section" aria-labelledby="choose-title">
       <div class="section-heading"><div><span class="section-kicker">CHƯƠNG ĐẦU TIÊN</span><h2 id="choose-title">Chọn bảng chữ cái</h2></div><span class="section-aside">Bắt đầu với nền tảng tiếng Nhật</span></div>
       <div class="script-grid">
-        <div class="script-card selected"><div class="script-top"><span class="script-icon">あ</span><span class="script-status">ĐANG HỌC <i>●</i></span></div><h3>Hiragana</h3><p>46 chữ cơ bản · Nền tảng để đọc tiếng Nhật</p><span class="script-bottom">01 / 03 <span aria-hidden="true">↗</span></span></div>
+        <div class="script-card selected"><div class="script-top"><span class="script-icon">あ</span><span class="script-status">ĐANG HỌC <i>●</i></span></div><h3>Hiragana</h3><p>46 chữ cơ bản, biến âm và âm ghép · Nền tảng để đọc tiếng Nhật</p><span class="script-bottom">01 / 03 <span aria-hidden="true">↗</span></span></div>
         <div class="script-card upcoming"><div class="script-top"><span class="script-icon">ア</span><span class="soon-badge">SẮP CÓ</span></div><h3>Katakana</h3><p>Dành cho từ mượn và tên nước ngoài</p><span class="script-bottom">02 / 03</span></div>
         <div class="script-card upcoming"><div class="script-top"><span class="script-icon">字</span><span class="soon-badge">SẮP CÓ</span></div><h3>Kanji</h3><p>Hệ thống chữ Hán dùng trong tiếng Nhật</p><span class="script-bottom">03 / 03</span></div>
       </div>
+    </section>
+    <section class="groups-section" aria-labelledby="groups-title">
+      <div class="section-heading"><div><span class="section-kicker">NỘI DUNG LUYỆN TẬP</span><h2 id="groups-title">Chọn nhóm âm</h2></div><span class="section-aside">Chọn một hoặc nhiều nhóm</span></div>
+      <div class="group-grid">${GROUPS.map(renderGroupCard).join('')}</div>
+      <p class="group-summary"><b>${selectedCount()}</b> âm sẽ xuất hiện trong lượt học, theo thứ tự ngẫu nhiên.</p>
     </section>
     <section class="mode-section" aria-labelledby="mode-title">
       <div class="section-heading"><div><span class="section-kicker">CHỌN CÁCH HỌC</span><h2 id="mode-title">Bạn muốn luyện gì hôm nay?</h2></div></div>
@@ -320,12 +421,12 @@ function renderQuiz() {
     <div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trở về</button><div class="quiz-track-name">HIRAGANA <span> / </span> ${state.mode === 'type' ? 'NHẬN DIỆN' : 'LUYỆN VIẾT'}</div><span class="quiz-counter">${String(done + 1).padStart(2, '0')} / ${String(state.queue.length).padStart(2, '0')}</span></div>
     <div class="progress-track" role="progressbar" aria-label="Tiến độ luyện tập" aria-valuenow="${done}" aria-valuemin="0" aria-valuemax="${state.queue.length}"><span style="width:${percent}%"></span></div>
     <div class="quiz-intro"><span class="section-kicker">${state.mode === 'type' ? 'NHÌN CHỮ, GÕ ÂM' : 'NHÌN ÂM, VẼ CHỮ'}</span><h1>${state.mode === 'type' ? 'Chữ này đọc là gì?' : 'Hãy vẽ chữ này'}</h1><p>${state.mode === 'type' ? 'Nhập phiên âm Romaji tương ứng với chữ bên dưới.' : 'Dùng chuột hoặc ngón tay vẽ Hiragana tương ứng với phiên âm.'}</p></div>
-    <div class="quiz-panel ${state.mode === 'draw' ? 'draw-panel' : ''}">
-      <div class="question-side"><span class="card-overline">${state.mode === 'type' ? 'CHỮ HIRAGANA' : 'PHIÊN ÂM ROMAJI'}</span><div class="prompt-symbol ${state.mode === 'draw' ? 'romaji-symbol' : ''}">${state.mode === 'type' ? item[0] : item[1]}</div><span class="card-footnote">${state.mode === 'type' ? 'Đọc chữ này thành tiếng nếu bạn muốn' : 'Viết đúng chữ Hiragana cho âm này'}</span></div>
+    <div class="quiz-panel ${state.mode === 'draw' ? 'draw-panel' : ''} ${cellCount(item) > 1 ? 'is-pair' : ''}">
+      <div class="question-side"><span class="card-overline">${state.mode === 'type' ? 'CHỮ HIRAGANA' : 'PHIÊN ÂM ROMAJI'}</span><div class="prompt-symbol ${state.mode === 'draw' ? 'romaji-symbol' : cellCount(item) > 1 ? 'is-compound' : ''}">${state.mode === 'type' ? item[0] : item[1]}</div><span class="card-footnote">${state.mode === 'type' ? 'Đọc chữ này thành tiếng nếu bạn muốn' : cellCount(item) > 1 ? 'Chữ chính viết ở ô lớn, chữ nhỏ viết ở ô nhỏ' : 'Viết đúng chữ Hiragana cho âm này'}</span></div>
       <div class="answer-side"><span class="card-overline">CÂU TRẢ LỜI CỦA BẠN</span>
-        ${state.feedback ? (state.mode === 'draw' && state.snapshot ? `<div class="draw-preview"><img alt="Nét vẽ của bạn" src="${state.snapshot}"></div>` : `<div class="answered-text">${escapeHtml(state.feedback.answer)}</div>`) :
+        ${state.feedback ? (state.snapshots.length ? `<div class="draw-preview">${state.snapshots.map((snapshot, cell) => `<img class="${cell ? 'is-small' : ''}" alt="Nét vẽ của bạn" src="${snapshot}">`).join('')}</div>` : `<div class="answered-text">${escapeHtml(state.feedback.answer)}</div>`) :
           state.mode === 'type' ? `<form id="answer-form"><label for="answer" class="input-label">Nhập phiên âm</label><input id="answer" name="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="latin" maxlength="12" placeholder="Ví dụ: a, ki, shi..." aria-describedby="answer-help" autofocus><small id="answer-help">Nhấn Enter hoặc nút Kiểm tra để trả lời</small><button class="button button-dark check-button" type="submit">Kiểm tra <span aria-hidden="true">→</span></button></form>` :
-          `<div class="draw-wrap"><canvas id="draw-canvas" width="256" height="256" aria-label="Ô vẽ chữ Hiragana bằng chuột hoặc ngón tay"></canvas></div><div class="draw-tools"><button data-action="undo" type="button">↶ &nbsp; Hoàn tác</button><button data-action="clear" type="button">✕ &nbsp; Xóa hết</button></div><p id="draw-message" class="draw-message"></p><button class="button button-dark check-button" data-action="check-draw" type="button">Kiểm tra nét vẽ <span aria-hidden="true">→</span></button>`}
+          `${renderDrawCells(item)}<div class="draw-tools"><button data-action="undo" type="button">↶ &nbsp; Hoàn tác</button><button data-action="clear" type="button">✕ &nbsp; Xóa hết</button></div><p id="draw-message" class="draw-message"></p><button class="button button-dark check-button" data-action="check-draw" type="button">Kiểm tra nét vẽ <span aria-hidden="true">→</span></button>`}
       </div>
     </div>
     ${renderFeedback()}
@@ -333,34 +434,45 @@ function renderQuiz() {
   </section>`;
 }
 
+function renderKanaTile(i) {
+  const [char, romaji] = KANA[i];
+  const result = state.results[i];
+  const status = result ? result.correct ? 'right' : 'wrong' : 'unseen';
+  const title = result ? `${char} (${romaji}): ${result.correct ? 'đúng' : `sai, đã trả lời ${result.answer || 'không nhận dạng được'}`}` : `${char} (${romaji}): chưa luyện`;
+  return `<div class="kana-tile ${status}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"><strong>${char}</strong><span>${romaji}</span>${result ? `<b aria-hidden="true">${result.correct ? '✓' : '×'}</b>` : ''}</div>`;
+}
+
 function renderResults() {
   const correct = KANA.filter((_, i) => state.results[i]?.correct).length;
   const wrong = KANA.filter((_, i) => state.results[i] && !state.results[i].correct).length;
   const answered = correct + wrong;
   const percentage = answered ? Math.round(correct / answered * 100) : 0;
+  const shown = GROUPS.filter(group => group.indexes.some(i => state.results[i] || state.queue.includes(i)));
+  const total = shown.reduce((sum, group) => sum + group.items.length, 0);
   return `<section class="results-shell"><div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trang đầu</button><div class="quiz-track-name">HIRAGANA <span> / </span> KẾT QUẢ</div><span class="quiz-counter">HOÀN THÀNH</span></div>
     <div class="results-hero"><span class="section-kicker">MỘT CHẶNG ĐƯỜNG ĐÃ HOÀN THÀNH</span><h1>${wrong === 0 ? 'Thật tuyệt vời!' : 'Bạn đã đi hết một lượt!'}</h1><p>Nhìn lại từng chữ bạn đã luyện. Những ô màu đỏ là cơ hội để nhớ lâu hơn ở lượt tiếp theo.</p></div>
-    <div class="stat-grid"><div class="stat-card"><strong>${percentage}<small>%</small></strong><span>ĐỘ CHÍNH XÁC</span></div><div class="stat-card"><strong>${correct}<small> / 46</small></strong><span>CHỮ ĐÚNG</span></div><div class="stat-card"><strong>${wrong}<small> / 46</small></strong><span>CẦN ÔN LẠI</span></div></div>
-    <div class="result-heading"><div><span class="section-kicker">BẢN ĐỒ HỌC TẬP</span><h2>Toàn bộ bảng Hiragana</h2></div><div class="legend"><span><i class="legend-dot green"></i> Đúng</span><span><i class="legend-dot red"></i> Sai</span><span><i class="legend-dot gray"></i> Chưa luyện</span></div></div>
-    <div class="kana-grid">${KANA.map(([char, romaji], i) => {
-      const result = state.results[i];
-      const status = result ? result.correct ? 'right' : 'wrong' : 'unseen';
-      const title = result ? `${char} (${romaji}): ${result.correct ? 'đúng' : `sai, đã trả lời ${result.answer || 'không nhận dạng được'}`}` : `${char} (${romaji}): chưa luyện`;
-      return `<div class="kana-tile ${status}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"><strong>${char}</strong><span>${romaji}</span>${result ? `<b aria-hidden="true">${result.correct ? '✓' : '×'}</b>` : ''}</div>`;
-    }).join('')}</div>
+    <div class="stat-grid"><div class="stat-card"><strong>${percentage}<small>%</small></strong><span>ĐỘ CHÍNH XÁC</span></div><div class="stat-card"><strong>${correct}<small> / ${total}</small></strong><span>CHỮ ĐÚNG</span></div><div class="stat-card"><strong>${wrong}<small> / ${total}</small></strong><span>CẦN ÔN LẠI</span></div></div>
+    <div class="result-heading"><div><span class="section-kicker">BẢN ĐỒ HỌC TẬP</span><h2>Các âm trong lượt học</h2></div><div class="legend"><span><i class="legend-dot green"></i> Đúng</span><span><i class="legend-dot red"></i> Sai</span><span><i class="legend-dot gray"></i> Chưa luyện</span></div></div>
+    ${shown.map(group => `<h3 class="kana-group-title">${group.name}</h3><div class="kana-grid ${group.items[0][0].length > 1 ? 'is-compound' : ''}">${group.indexes.map(renderKanaTile).join('')}</div>`).join('')}
     <div class="results-actions">${wrong ? `<button class="button button-dark" data-action="retry">Ôn lại ${wrong} chữ sai <span aria-hidden="true">↗</span></button>` : ''}<button class="button button-outline" data-action="restart">Luyện lại từ đầu <span aria-hidden="true">↗</span></button></div>
     <p class="results-note">Kết quả gần nhất được lưu trên trình duyệt này. Bạn có thể quay lại và tiếp tục sau.</p>
   </section>`;
 }
 
-function drawSetup() {
-  const canvas = document.querySelector('#draw-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.lineWidth = 7;
+function penWidth(cell) { return cell ? 12 : 7; }
+
+function setupPen(ctx, cell) {
+  ctx.lineWidth = penWidth(cell);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.strokeStyle = '#20333b';
+  ctx.fillStyle = '#20333b';
+}
+
+function setupCanvas(canvas) {
+  const cell = Number(canvas.dataset.cell);
+  const ctx = canvas.getContext('2d');
+  setupPen(ctx, cell);
   const point = event => {
     const rect = canvas.getBoundingClientRect();
     return [Math.max(0, Math.min(256, (event.clientX - rect.left) * 256 / rect.width)),
@@ -380,17 +492,17 @@ function drawSetup() {
     state.pointerId = event.pointerId;
     canvas.setPointerCapture(event.pointerId);
     const p = point(event);
-    state.strokes.push([p]);
+    (state.cellStrokes[cell] ||= []).push([p]);
+    state.strokeOrder.push(cell);
     ctx.beginPath();
-    ctx.arc(p[0], p[1], 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#20333b';
+    ctx.arc(p[0], p[1], penWidth(cell) / 2, 0, Math.PI * 2);
     ctx.fill();
   });
   canvas.addEventListener('pointermove', event => {
     if (!state.drawing || event.pointerId !== state.pointerId) return;
     event.preventDefault();
     const p = point(event);
-    const stroke = state.strokes.at(-1);
+    const stroke = state.cellStrokes[cell].at(-1);
     const last = stroke.at(-1);
     if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 1.5) return;
     stroke.push(p);
@@ -403,26 +515,33 @@ function drawSetup() {
   canvas.addEventListener('pointercancel', finish);
 }
 
-function redrawCanvas() {
-  const canvas = document.querySelector('#draw-canvas');
-  if (!canvas) return;
+function redrawCanvases() {
   showDrawMessage('');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, 256, 256);
-  ctx.strokeStyle = '#20333b'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  for (const stroke of state.strokes) {
-    if (!stroke.length) continue;
-    ctx.beginPath(); ctx.moveTo(...stroke[0]);
-    for (const p of stroke.slice(1)) ctx.lineTo(...p);
-    if (stroke.length === 1) ctx.lineTo(stroke[0][0] + .1, stroke[0][1] + .1);
-    ctx.stroke();
+  for (const canvas of document.querySelectorAll('.draw-canvas')) {
+    const cell = Number(canvas.dataset.cell);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 256, 256);
+    setupPen(ctx, cell);
+    for (const stroke of state.cellStrokes[cell] || []) {
+      ctx.beginPath(); ctx.moveTo(...stroke[0]);
+      for (const p of stroke.slice(1)) ctx.lineTo(...p);
+      if (stroke.length === 1) ctx.lineTo(stroke[0][0] + .1, stroke[0][1] + .1);
+      ctx.stroke();
+    }
   }
+}
+
+function undoStroke() {
+  const cell = state.strokeOrder.pop();
+  if (cell === undefined) return;
+  state.cellStrokes[cell].pop();
+  redrawCanvases();
 }
 
 function render() {
   app.innerHTML = state.screen === 'home' ? renderHome() : state.screen === 'quiz' ? renderQuiz() : renderResults();
   if (state.screen === 'quiz' && !state.feedback) {
-    if (state.mode === 'draw') drawSetup();
+    if (state.mode === 'draw') document.querySelectorAll('.draw-canvas').forEach(setupCanvas);
     else document.querySelector('#answer')?.focus({preventScroll: true});
   }
 }
@@ -432,7 +551,8 @@ app.addEventListener('submit', event => {
 });
 
 app.addEventListener('click', event => {
-  const action = event.target.closest('[data-action]')?.dataset.action;
+  const trigger = event.target.closest('[data-action]');
+  const action = trigger?.dataset.action;
   if (!action) return;
   if (action === 'start-type') start('type');
   else if (action === 'start-draw') start('draw');
@@ -443,8 +563,9 @@ app.addEventListener('click', event => {
   else if (action === 'check-draw') recognizeDrawing();
   else if (action === 'export-samples') exportSamples();
   else if (action === 'clear-samples') clearSamples();
-  else if (action === 'undo' && state.strokes.length) { state.strokes.pop(); redrawCanvas(); }
-  else if (action === 'clear') { state.strokes = []; redrawCanvas(); }
+  else if (action === 'toggle-group') toggleGroup(trigger.dataset.group);
+  else if (action === 'undo') undoStroke();
+  else if (action === 'clear') { state.cellStrokes = []; state.strokeOrder = []; redrawCanvases(); }
   else if (action === 'retry') start(state.mode, true);
   else if (action === 'restart') start(state.mode);
 });

@@ -42,8 +42,22 @@ main{flex:1}
 .art-romaji{color:#b9785f;font-size:22px;font-family:"Times New Roman",serif}
 .art-caption{position:absolute;right:5%;bottom:12%;transform:rotate(90deg);transform-origin:center;font-family:"Yu Mincho",serif;color:#aab1a7;font-size:13px;letter-spacing:.18em}
 .art-caption i{font-style:normal;color:#b9785f;margin-left:12px}
-.choose-section,.mode-section{padding:80px clamp(24px,8vw,120px)}
+.choose-section,.groups-section,.mode-section{padding:80px clamp(24px,8vw,120px)}
+.choose-section{padding-bottom:36px}
+.groups-section{padding-top:36px;padding-bottom:36px}
 .mode-section{padding-top:36px;padding-bottom:100px}
+.group-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.group-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:152px;padding:20px;text-align:left;color:#20333b;background:#faf8f2;border:1px solid #e2ded4;border-radius:12px;transition:background .15s,border-color .15s}
+.group-card:hover{border-color:#8da69a}
+.group-card:focus-visible{outline:3px solid #b9785f;outline-offset:3px}
+.group-card.selected{background:#eef3ea;border:1.5px solid #385e58}
+.group-check{position:absolute;top:16px;right:16px;width:22px;height:22px;border-radius:50%;border:1.5px solid #c4cbc0;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+.group-card.selected .group-check{background:#385e58;border-color:#385e58}
+.group-sample{font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:36px;line-height:1.1;color:#365c53;margin-bottom:12px}
+.group-card strong{font-size:15px;line-height:1.3}
+.group-card small{color:#7e8a84;font-size:12px;line-height:1.5}
+.group-summary{margin:16px 0 0;color:#7e8a84;font-size:13px}
+.group-summary b{color:#2f5e4b}
 .section-heading{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:29px}
 .section-heading h2,.result-heading h2{font-family:"Times New Roman","Yu Mincho",serif;font-size:clamp(28px,3vw,38px);letter-spacing:-.04em;font-weight:500;margin:10px 0 0}
 .section-aside{font-size:13px;color:#86918b;margin-bottom:5px}
@@ -97,6 +111,7 @@ main{flex:1}
 .card-overline{font-size:10px;font-weight:800;letter-spacing:.2em;color:#82968a}
 .question-side .card-overline{align-self:flex-start}
 .prompt-symbol{font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:clamp(150px,19vw,220px);font-weight:400;line-height:1;color:#263e42}
+.prompt-symbol.is-compound{font-size:clamp(96px,12vw,150px)}
 .romaji-symbol{font-family:"Times New Roman",serif;font-size:clamp(70px,10vw,125px);font-style:italic;color:#356153}
 .card-footnote{color:#9ba79b;font-size:11px;letter-spacing:.04em}
 .answer-side{justify-content:center}
@@ -126,7 +141,13 @@ main{flex:1}
 .draw-panel .question-side{min-height:495px}
 .draw-panel .answer-side{padding:26px 34px;align-items:center}
 .draw-panel .answer-side .card-overline{align-self:flex-start;margin-bottom:12px}
-.draw-wrap{width:min(100%,256px);aspect-ratio:1;background-color:#fcfaf5;background-image:linear-gradient(#e9e9df 1px,transparent 1px),linear-gradient(90deg,#e9e9df 1px,transparent 1px);background-size:50% 50%;border:1px solid #d8ded4;border-radius:5px;overflow:hidden}
+.draw-cells{display:flex;align-items:flex-end;justify-content:center;gap:12px;width:min(100%,256px)}
+.is-pair .draw-cells,.is-pair .draw-tools,.is-pair .draw-message,.draw-panel.is-pair .check-button{width:min(100%,340px)}
+.draw-cell{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.is-pair .draw-cell{flex:5}
+.is-pair .draw-cell.is-small{flex:3}
+.cell-label{color:#8a978d;font-size:11px;font-weight:700}
+.draw-wrap{width:100%;aspect-ratio:1;background-color:#fcfaf5;background-image:linear-gradient(#e9e9df 1px,transparent 1px),linear-gradient(90deg,#e9e9df 1px,transparent 1px);background-size:50% 50%;border:1px solid #d8ded4;border-radius:5px;overflow:hidden}
 .draw-wrap canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .draw-tools{display:flex;justify-content:space-between;width:min(100%,256px);margin:9px 0 16px}
 .draw-tools button{border:0;background:transparent;color:#73877b;font-size:12px;font-weight:700;padding:5px}
@@ -138,9 +159,11 @@ main{flex:1}
 .samples-panel b{color:#2f5e4b}
 .samples-panel div{display:flex;gap:14px}
 .samples-panel button{border:0;background:transparent;color:#2f5e4b;font:inherit;font-weight:700;padding:5px 0;text-decoration:underline;cursor:pointer}
-.draw-panel .check-button{width:min(100%,256px)}
-.draw-preview{display:grid;place-items:center;flex:1}
+.draw-panel .check-button{width:min(100%,256px);align-self:center}
+.draw-preview{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:auto 0}
 .draw-preview img{height:min(256px,45vw);width:min(256px,45vw);border:1px solid #d8ded4;background:#fcfaf5;object-fit:contain}
+.is-pair .draw-preview img{height:min(200px,42vw);width:min(200px,42vw)}
+.is-pair .draw-preview img.is-small{height:min(120px,26vw);width:min(120px,26vw)}
 
 .results-hero{text-align:center;padding:73px 0 37px}
 .results-hero h1{font-size:clamp(42px,5vw,64px);margin:13px 0}
@@ -157,7 +180,9 @@ main{flex:1}
 .legend-dot.green{background:#73ab7e}
 .legend-dot.red{background:#d78076}
 .legend-dot.gray{background:#d6d8d0}
+.kana-group-title{font-size:14px;font-weight:700;color:#36574f;margin:26px 0 12px}
 .kana-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:9px}
+.kana-grid.is-compound{grid-template-columns:repeat(6,1fr)}
 .kana-tile{min-height:93px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border:1px solid transparent}
 .kana-tile.right{background:#e0eee1;color:#2d694e;border-color:#c9dfcd}
 .kana-tile.wrong{background:#f7dfda;color:#a64c43;border-color:#ebc9c2}
@@ -177,7 +202,8 @@ main{flex:1}
 .ring-two{width:520px;height:520px}
 .art-card{width:220px;height:310px}
 .card-front strong{font-size:145px}
-.choose-section,.mode-section{padding-left:35px;padding-right:35px}
+.choose-section,.groups-section,.mode-section{padding-left:35px;padding-right:35px}
+.group-grid{grid-template-columns:1fr 1fr}
 .script-card{padding:19px}
 .quiz-shell,.results-shell{max-width:760px}
 .kana-grid{grid-template-columns:repeat(8,1fr)}
@@ -202,8 +228,15 @@ main{flex:1}
 .ring-one{width:320px;height:320px}
 .ring-two{width:450px;height:450px}
 .art-caption{display:none}
-.choose-section,.mode-section{padding:60px 20px}
-.mode-section{padding-top:10px;padding-bottom:65px}
+.choose-section,.groups-section,.mode-section{padding:60px 20px}
+.choose-section{padding-bottom:20px}
+.groups-section{padding-top:20px;padding-bottom:20px}
+.mode-section{padding-top:20px;padding-bottom:65px}
+.group-grid{gap:10px}
+.group-card{min-height:140px;padding:15px}
+.group-sample{font-size:30px;margin-bottom:6px}
+.group-card strong{font-size:14px}
+.group-check{top:12px;right:12px}
 .section-heading{display:block}
 .section-aside{display:none}
 .script-grid{grid-template-columns:1fr;gap:10px}
@@ -230,6 +263,7 @@ main{flex:1}
 .draw-panel .question-side{min-height:200px}
 .draw-panel .answer-side{padding:23px;min-height:410px}
 .draw-panel .prompt-symbol{font-size:82px}
+.prompt-symbol.is-compound{font-size:96px}
 .feedback{align-items:flex-start;padding:16px;gap:12px;flex-wrap:wrap}
 .feedback-icon{height:43px;width:43px;font-size:29px}
 .feedback-copy{flex-basis:calc(100% - 60px)}
@@ -244,6 +278,7 @@ main{flex:1}
 .result-heading{display:block}
 .legend{margin-top:13px}
 .kana-grid{grid-template-columns:repeat(5,1fr);gap:6px}
+.kana-grid.is-compound{grid-template-columns:repeat(3,1fr)}
 .kana-tile{min-height:75px}
 .kana-tile strong{font-size:27px}
 .kana-tile b{font-size:12px;right:4px;top:2px}

@@ -12,11 +12,18 @@ import torch.nn.functional as F
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CHARS = list('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん')
+BASE_CHARS = list('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん')
 ROMAJI = 'A I U E O KA KI KU KE KO SA SHI SU SE SO TA CHI TSU TE TO NA NI NU NE NO HA HI FU HE HO MA MI MU ME MO YA YU YO RA RI RU RE RO WA WO N'.split()
+DAKUTEN = dict(zip('がぎぐげござじずぜぞだぢづでどばびぶべぼゔ', 'かきくけこさしすせそたちつてとはひふへほう'))
+HANDAKUTEN = dict(zip('ぱぴぷぺぽ', 'はひふへほ'))
+MARKED = {**DAKUTEN, **HANDAKUTEN}
+CHARS = BASE_CHARS + list(MARKED)
+# Marked characters present in the optional real-image test set.
+REAL_MARKED = {'BA': 'ば', 'DA': 'だ', 'JI': 'じ', 'PI': 'ぴ'}
 INDEX = {char: i for i, char in enumerate(CHARS)}
 SIZE, INNER, SUPERSAMPLE = 48, 40, 4
 STROKE_DRAWINGS_PER_CHAR, FONT_DRAWINGS_PER_CHAR = 420, 200
+MARKED_STROKE_DRAWINGS_PER_CHAR, MARKED_FONT_DRAWINGS_PER_CHAR = 300, 150
 
 
 def load_templates(samples_file):
@@ -99,6 +106,37 @@ def vary_strokes(strokes):
     return result
 
 
+def add_marks(strokes, handakuten):
+    """Adds dakuten ticks or a handakuten circle at the top right, where learners write them."""
+    points = [p for stroke in strokes for p in stroke]
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
+    x = max(xs) + random.uniform(-.08, .12) * span
+    y = min(ys) + random.uniform(-.1, .14) * span
+    if handakuten:
+        radius = random.uniform(.06, .13) * span
+        sides = random.randint(7, 14)
+        start = random.uniform(0, 6.3)
+        return strokes + [[[x + radius * math.cos(start + 6.3 * i / sides) * random.uniform(.85, 1.15),
+                            y + radius * math.sin(start + 6.3 * i / sides) * random.uniform(.85, 1.15)] for i in range(sides + 1)]]
+    gap = random.uniform(.09, .2) * span
+    length = random.uniform(.12, .26) * span
+    tilt = random.uniform(.5, 1.3)
+    ticks = []
+    for offset in (0, gap):
+        tick_y = y + random.uniform(-.03, .03) * span
+        tick_x = x + offset
+        ticks.append([[tick_x, tick_y], [tick_x + length * math.cos(tilt) * random.uniform(.8, 1.2), tick_y + length * math.sin(tilt) * random.uniform(.8, 1.2)]])
+    return strokes + ticks
+
+
+def stroke_example(templates, char):
+    own = templates[char]
+    if char not in MARKED or (own and random.random() < .5):
+        return vary_strokes(random.choice(own))
+    return add_marks(vary_strokes(random.choice(templates[MARKED[char]])), char in HANDAKUTEN)
+
+
 def fit_to_canvas(image):
     box = image.getbbox()
     if box:
@@ -141,10 +179,11 @@ def vary_glyph(glyph):
 def make_epoch(templates, fonts):
     images, labels = [], []
     for char in CHARS:
-        for _ in range(STROKE_DRAWINGS_PER_CHAR):
-            images.append(rasterize(vary_strokes(random.choice(templates[char])), random.uniform(1.3, 3.6)))
+        strokes_count, fonts_count = (MARKED_STROKE_DRAWINGS_PER_CHAR, MARKED_FONT_DRAWINGS_PER_CHAR) if char in MARKED else (STROKE_DRAWINGS_PER_CHAR, FONT_DRAWINGS_PER_CHAR)
+        for _ in range(strokes_count):
+            images.append(rasterize(stroke_example(templates, char), random.uniform(1.3, 3.6)))
             labels.append(INDEX[char])
-        for _ in range(FONT_DRAWINGS_PER_CHAR if fonts else 0):
+        for _ in range(fonts_count if fonts else 0):
             images.append(vary_glyph(random.choice(fonts)[char]))
             labels.append(INDEX[char])
     return torch.from_numpy(np.stack(images))[:, None], torch.tensor(labels)
@@ -161,7 +200,7 @@ def warp(batch):
 
 def load_real_images(directory):
     images, labels = [], []
-    for romaji, char in zip(ROMAJI, CHARS):
+    for romaji, char in [*zip(ROMAJI, BASE_CHARS), *REAL_MARKED.items()]:
         for number in range(20):
             pixels = np.asarray(Image.open(os.path.join(directory, f'kana{romaji}{number}.jpg')).convert('L'), np.float32)
             if pixels.mean() > 127:
@@ -218,7 +257,8 @@ def main():
     real = load_real_images(args.real_images) if args.real_images else None
     network = Network()
     optimizer = torch.optim.AdamW(network.parameters(), lr=1e-3, weight_decay=1e-4)
-    batches_per_epoch = len(CHARS) * (STROKE_DRAWINGS_PER_CHAR + FONT_DRAWINGS_PER_CHAR) // 128 + 1
+    batches_per_epoch = (len(BASE_CHARS) * (STROKE_DRAWINGS_PER_CHAR + FONT_DRAWINGS_PER_CHAR) +
+                         len(MARKED) * (MARKED_STROKE_DRAWINGS_PER_CHAR + MARKED_FONT_DRAWINGS_PER_CHAR)) // 128 + 1
     total_steps = args.epochs * batches_per_epoch
     schedule = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=3e-3, total_steps=total_steps, pct_start=.15)
     for epoch in range(args.epochs):
@@ -235,7 +275,9 @@ def main():
         if real:
             network.eval()
             with torch.no_grad():
-                message += f' real-image accuracy {(network(real[0]).argmax(1) == real[1]).float().mean().item() * 100:.1f}%'
+                correct = network(real[0]).argmax(1) == real[1]
+                is_marked = real[1] >= len(BASE_CHARS)
+                message += f' real-image accuracy: base {correct[~is_marked].float().mean().item() * 100:.1f}% marked {correct[is_marked].float().mean().item() * 100:.1f}%'
         print(message, flush=True)
     export(network.state_dict(), args.version)
     print('Wrote hiragana-model.js')
