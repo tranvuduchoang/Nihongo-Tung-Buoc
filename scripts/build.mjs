@@ -7,7 +7,8 @@ const dist = path.join(root, 'dist');
 fs.rmSync(dist, {recursive: true, force: true});
 fs.mkdirSync(dist, {recursive: true});
 for (const file of ['index.html', 'styles.css', 'favicon.svg', 'hiragana-model.js', 'THIRD_PARTY_NOTICES.md', '.nojekyll',
-  'src/app.js', 'src/kana-model.js', 'src/recognizer.js']) {
+  'src/app.js', 'src/kana-model.js', 'src/recognizer.js',
+  'exercises/index.html', 'src/exercises.js', 'src/exercises-data.js', 'src/exercises.css']) {
   const target = path.join(dist, file);
   fs.mkdirSync(path.dirname(target), {recursive: true});
   fs.copyFileSync(path.join(root, file), target);
