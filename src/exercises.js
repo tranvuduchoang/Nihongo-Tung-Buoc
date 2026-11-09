@@ -1,17 +1,21 @@
 import {QUESTIONS, TYPES, checkAnswer, makeQueue} from './exercises-data.js';
+import {PDF_COUNTS, createWorksheet, loadPdfAssets, buildWorksheetPdf, savePdfDownload} from './exercises-pdf.js';
 
 const KEY = 'nihongo-exercises-v1';
 const byId = new Map(QUESTIONS.map(question => [question.id, question]));
 const app = document.querySelector('#exercises');
 const announcer = document.querySelector('#exercise-announcer');
 const emptyDraft = mode => ({mode, text:'', strokes:[], revealed:false});
-let settings = {types:TYPES.map(type => type.id), count:10, mode:'type'};
+let settings = {types:TYPES.map(type => type.id), count:10, mode:'type', pdfCount:20};
 let session = null;
 let history = [];
 let screen = 'home';
 let storageUnavailable = false;
 let activeStroke = null;
 let activePointer = null;
+let pdfBusy = false;
+let pdfMessage = '';
+let pdfError = false;
 const html = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const say = message => { announcer.textContent = message; };
 const current = () => byId.get(session.ids[session.cursor]);
@@ -35,7 +39,8 @@ function restore() {
       const types = TYPES.map(type => type.id).filter(id => saved.settings.types?.includes(id));
       settings = {types:types.length ? types : settings.types,
         count:[10, 20, 30].includes(saved.settings.count) ? saved.settings.count : 10,
-        mode:saved.settings.mode === 'draw' ? 'draw' : 'type'};
+        mode:saved.settings.mode === 'draw' ? 'draw' : 'type',
+        pdfCount:PDF_COUNTS.includes(saved.settings.pdfCount) ? saved.settings.pdfCount : 20};
     }
     if (Array.isArray(saved.history)) history = saved.history.filter(item => item && typeof item.date === 'string' &&
       Number.isFinite(Date.parse(item.date)) && Number.isInteger(item.total) && item.total > 0 && item.total <= QUESTIONS.length &&
@@ -93,7 +98,54 @@ function homeView() {
     <div class="exercise-start"><p id="pool-count">${available ? `${available} câu có sẵn · Xáo trộn mỗi lượt` : 'Chọn ít nhất một dạng bài để bắt đầu.'}</p><button class="button button-dark" data-action="start" ${available ? '' : 'disabled'}>Bắt đầu làm bài <span aria-hidden="true">→</span></button></div>
     <p class="practice-note">Đánh máy được đối chiếu với đáp án mẫu. Viết tay bằng chuột hoặc ngón tay, sau đó xem đáp án và tự đánh giá. Có thể đổi cách trả lời ở từng câu.</p>
   </section>
+  <section class="pdf-section" aria-labelledby="pdf-title"><div class="section-heading"><div><span class="section-kicker">02 / MANG BÀI TẬP RA GIẤY</span><h2 id="pdf-title">Một tờ giấy, một buổi luyện.</h2></div><span class="pdf-badge">PDF · A4</span></div>
+    <p class="pdf-description">Dùng các mục bạn đã chọn ở trên để tạo đề in. Mỗi mục có tiêu đề riêng, câu hỏi đánh số từ 1 và dòng trống để viết. File chỉ có đề, không kèm đáp án.</p>
+    <div class="pdf-controls"><div><label for="pdf-count">Số câu cho mỗi mục</label><select id="pdf-count" ${pdfBusy ? 'disabled' : ''}>${PDF_COUNTS.map(count => `<option value="${count}" ${settings.pdfCount === count ? 'selected' : ''}>${count} câu / mục</option>`).join('')}</select></div><button class="button button-dark" data-action="download-pdf" ${!settings.types.length || pdfBusy ? 'disabled' : ''}>${pdfBusy ? 'Đang tạo PDF…' : 'Tải đề PDF'} <span aria-hidden="true">↓</span></button></div>
+    <p id="pdf-summary" class="pdf-summary">${pdfSummary()}</p><p id="pdf-status" class="pdf-status ${pdfError ? 'is-error' : ''}" role="status">${html(pdfMessage)}</p><p class="practice-note">Xáo trộn đề mới mỗi lần tải. Tải PDF không làm thay đổi bài đang làm hoặc lịch sử luyện tập.</p>
+  </section>
+  <details class="exercise-sources"><summary>Nguồn học và cách biên soạn</summary><p>Nội dung luyện tập được tự biên soạn theo các chủ đề nhập môn, tham khảo tài liệu của The Japan Foundation. Các nguồn giúp chọn chủ đề và đối chiếu từ vựng; đây không phải đề thi chính thức của giáo trình.</p><ul><li><a href="https://marugoto.jpf.go.jp/en/download/starter_a/" target="_blank" rel="noopener noreferrer">Marugoto Starter A1 · tài liệu và từ vựng</a></li><li><a href="https://www.irodori.jpf.go.jp/en/starter/pdf.html" target="_blank" rel="noopener noreferrer">Irodori Starter · giao tiếp trong đời sống</a></li></ul><p>Phiên âm mẫu giữ các nguyên âm như cách viết Hiragana (ou, oo, ei); nhiều từ cũng nhận cách viết âm dài bằng dấu ngang. Các bài dịch có nhiều đáp án tương đương; bạn có thể tự đánh giá nếu cách diễn đạt của mình khác mẫu.</p></details>
   <section class="exercise-history" aria-labelledby="history-title"><div class="section-heading"><div><span class="section-kicker">DẤU CHÂN HỌC TẬP</span><h2 id="history-title">Những lần bạn đã cố gắng</h2></div></div>${history.length ? `<ol class="history-list">${history.map(item => `<li><span>${html(dateLabel(item.date))}<small>${item.manual ? `${item.manual} câu tự đánh giá` : 'Chấm đáp án đánh máy'}</small></span><strong>${item.correct}<span> / ${item.total} đúng</span></strong></li>`).join('')}</ol>` : '<p class="empty-history">Chưa có lượt hoàn thành. Bắt đầu một đề nhỏ hôm nay nhé.</p>'}<p class="practice-note">Giữ 12 lượt gần nhất trên trình duyệt này. Dữ liệu chưa đồng bộ giữa các thiết bị.</p></section>`;
+}
+
+function pdfSummary() {
+  const sections = settings.types.length ? createWorksheet(settings.types, settings.pdfCount, () => .5) : [];
+  if (!sections.length) return 'Chọn ít nhất một mục ở trên để tải đề PDF.';
+  const total = sections.reduce((sum, section) => sum + section.questions.length, 0);
+  return `${sections.length} mục × ${settings.pdfCount} câu / mục = ${total} câu. Các mục: ${sections.map(section => section.title).join(' · ')}.`;
+}
+
+function updatePdfControls() {
+  const summary = document.querySelector('#pdf-summary');
+  if (summary) summary.textContent = pdfSummary();
+  const button = document.querySelector('[data-action="download-pdf"]');
+  if (button) {
+    button.disabled = pdfBusy || !settings.types.length;
+    button.innerHTML = `${pdfBusy ? 'Đang tạo PDF…' : 'Tải đề PDF'} <span aria-hidden="true">↓</span>`;
+    button.setAttribute('aria-busy', String(pdfBusy));
+  }
+  const count = document.querySelector('#pdf-count');
+  if (count) count.disabled = pdfBusy;
+  const status = document.querySelector('#pdf-status');
+  if (status) { status.textContent = pdfMessage; status.classList.toggle('is-error', pdfError); }
+}
+
+async function downloadPdf() {
+  if (pdfBusy || !settings.types.length) return;
+  const sections = createWorksheet(settings.types, settings.pdfCount);
+  pdfBusy = true; pdfError = false; pdfMessage = 'Đang chuẩn bị đề và phông chữ tiếng Nhật…';
+  updatePdfControls();
+  try {
+    const assets = await loadPdfAssets();
+    const code = (globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`).replace(/[^a-z0-9]/gi, '').slice(-8).toUpperCase();
+    const bytes = await buildWorksheetPdf(sections, assets, {code});
+    savePdfDownload(bytes, `nihongo-de-luyen-${code.toLowerCase()}.pdf`);
+    pdfMessage = `Đã tạo đề gồm ${sections.length} mục, ${sections.reduce((sum, section) => sum + section.questions.length, 0)} câu. Nếu chưa thấy file, hãy kiểm tra mục tải xuống của trình duyệt.`;
+  } catch (error) {
+    pdfError = true;
+    pdfMessage = `Chưa tạo được PDF. ${error.message || 'Hãy kiểm tra kết nối và thử lại.'}`;
+  } finally {
+    pdfBusy = false; updatePdfControls(); say(pdfMessage);
+  }
 }
 
 function quizView() {
@@ -208,9 +260,12 @@ app.addEventListener('change', event => {
     const count = QUESTIONS.filter(question => settings.types.includes(question.type)).length;
     document.querySelector('#pool-count').textContent = count ? `${count} câu có sẵn · Xáo trộn mỗi lượt` : 'Chọn ít nhất một dạng bài để bắt đầu.';
     document.querySelector('[data-action="start"]').disabled = !count;
+    if (!pdfBusy) { pdfMessage = ''; pdfError = false; }
+    updatePdfControls();
   }
   if (event.target.id === 'question-count') settings.count = Number(event.target.value);
   if (event.target.name === 'initial-mode') settings.mode = event.target.value;
+  if (event.target.id === 'pdf-count') { settings.pdfCount = Number(event.target.value); pdfMessage = ''; pdfError = false; updatePdfControls(); }
   save();
 });
 app.addEventListener('submit', event => { if (event.target.id === 'exercise-answer-form') { event.preventDefault(); submit(); } });
@@ -221,6 +276,7 @@ app.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button || button.disabled) return;
   const action = button.dataset.action;
+  if (action === 'download-pdf') { void downloadPdf(); return; }
   if (button.dataset.mode && screen === 'quiz' && !session.draft.revealed && !session.results[session.cursor]) {
     session.draft.mode = button.dataset.mode; save(); render();
   }

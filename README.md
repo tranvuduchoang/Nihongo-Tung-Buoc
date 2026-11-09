@@ -15,13 +15,23 @@ Sau mỗi lượt, trang kết quả hiển thị các âm đã chọn theo từ
 
 Chọn **Làm bài tập** trên thanh điều hướng hoặc mở `/exercises/`. Trang riêng này không thay đổi logic kiểm tra bảng chữ cái.
 
-Ngân hàng gồm **152 câu hỏi** theo bốn dạng: Hiragana → Romaji (52 câu), Romaji → Hiragana (52 câu), tiếng Việt → tiếng Nhật (24 câu) và tiếng Nhật → tiếng Việt (24 câu). Nội dung gồm từ vựng, âm dài, âm ngắt, chữ nhỏ và câu chào trong sinh hoạt/công ty, kèm phiên âm, nghĩa và lưu ý sử dụng.
+Ngân hàng gồm **600 câu hỏi** theo bốn dạng: Hiragana → Romaji (200 câu), Romaji → Hiragana (200 câu), tiếng Việt → tiếng Nhật (100 câu) và tiếng Nhật → tiếng Việt (100 câu). Tương ứng 200 từ và 100 câu giao tiếp luyện theo hai chiều, gồm gia đình, đồ dùng, ăn uống, thời gian, đi lại, động từ, tính từ và giao tiếp hằng ngày. Có phiên âm, nghĩa và lưu ý sử dụng. Nội dung được tự biên soạn theo chủ đề nhập môn, tham khảo [Marugoto A1](https://marugoto.jpf.go.jp/en/download/starter_a/) và [Irodori Starter](https://www.irodori.jpf.go.jp/en/starter/pdf.html); xem [nguồn và quy ước biên soạn](docs/EXERCISE_CONTENT.md).
 
 - Chọn nhiều dạng bài và đề 10, 20 hoặc 30 câu, xáo trộn mỗi lượt. Nếu nhóm đã chọn có ít câu hơn, đề lấy toàn bộ nhóm, không lặp câu.
 - **Đánh máy:** đối chiếu đáp án mẫu; không phân biệt hoa/thường, khoảng trắng và dấu câu. Tiếng Việt chấp nhận cả có dấu/không dấu. Chữ nhỏ, âm dài và phụ âm kép tiếng Nhật vẫn phải đúng. Bài yêu cầu chữ Nhật cần bàn phím tiếng Nhật của thiết bị. Có thể nhấn Ctrl/⌘ + Enter để kiểm tra.
 - **Viết tay:** bảng viết bằng chuột, bút hoặc ngón tay, có hoàn tác và xóa. Mở đáp án để đối chiếu rồi tự chọn đúng/cần luyện thêm; không dùng AI/OCR chấm cả từ hoặc câu. Có thể đổi cách trả lời trước khi xem đáp án.
 - Xem lại kết quả, giải thích và ôn riêng câu sai. Với câu dịch sang tiếng Việt có cách diễn đạt đúng khác mẫu, có thể tự đánh giá lại. Kết quả ghi rõ số câu tự đánh giá.
 - Lưu tự động lượt đang làm (cả chữ đang gõ/nét viết) và 12 lượt hoàn thành gần nhất trong khóa `nihongo-exercises-v1`, tách khỏi tiến độ bảng chữ cái. Nét viết của câu đang làm được giữ khi tải lại; sau khi chuyển câu, chỉ giữ kết quả tự đánh giá. Dữ liệu chỉ có trên trình duyệt đang dùng, chưa đồng bộ thiết bị; nếu trình duyệt chặn lưu trữ, trang vẫn dùng được và thông báo không thể lưu.
+
+### Tải PDF để in
+
+1. Chọn một hoặc nhiều mục trong bốn dạng bài ở đầu trang.
+2. Trong phần **Mang bài tập ra giấy**, chọn **số câu cho mỗi mục**: 10, 20, 30, 50 hoặc 100.
+3. Bấm **Tải đề PDF**. Ví dụ chọn cả bốn mục, 20 câu/mục, sẽ được một PDF có bốn phần riêng, tổng 80 câu.
+
+File dùng khổ A4, có dòng họ tên/ngày, tiêu đề từng mục, số câu, mã đề, số trang và khoảng trống để viết. Mỗi mục bắt đầu ở trang mới; số câu đánh lại từ 1 trong mục. Khi một mục dài nhiều trang, trang tiếp theo vẫn có tiêu đề mục và tiếp tục số câu. **Chỉ xuất đề, không kèm đáp án.** Mỗi lần tải sẽ xáo trộn câu mới trong từng mục, không lặp trong cùng mục.
+
+PDF được tạo trực tiếp trong trình duyệt, không gửi câu trả lời/nét viết lên server, không cần database hoặc dịch vụ PDF bên ngoài. Thư viện và phông được đóng gói cùng website, chỉ tải khi bấm nút. Tải PDF không thay đổi lượt đang làm, điểm hay lịch sử. Để tải PDF cần mở website qua HTTP/HTTPS; nếu mất kết nối hoặc thiếu tài nguyên, trang báo lỗi và cho thử lại.
 
 ## Chạy tại máy
 
@@ -46,6 +56,7 @@ Không đặt API key hoặc dữ liệu riêng tư trong repository hay mã ph�
 ```sh
 node scripts/check-recognition.mjs
 node scripts/check-exercises.mjs
+node scripts/check-exercises-pdf.mjs
 node scripts/build.mjs
 ```
 

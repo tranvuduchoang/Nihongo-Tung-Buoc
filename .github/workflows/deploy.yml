@@ -27,6 +27,8 @@ jobs:
         run: node scripts/check-recognition.mjs
       - name: Check exercises
         run: node scripts/check-exercises.mjs
+      - name: Check printable PDF generation
+        run: node scripts/check-exercises-pdf.mjs
       - name: Build static site
         run: node scripts/build.mjs
       - uses: actions/upload-pages-artifact@v4

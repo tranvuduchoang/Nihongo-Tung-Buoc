@@ -1,4 +1,6 @@
-// Separate from the alphabet quiz: each entry produces two practice directions.
+import {EXTRA_VOCABULARY, EXTRA_EXPRESSIONS} from './exercises-extra.js';
+
+// Append entries to preserve IDs used in saved sessions and results.
 const vocabulary = [
   ['かさ','kasa','cái ô'], ['せんせい','sensei','giáo viên'],
   ['てんき','tenki','thời tiết'], ['せんもん','senmon','chuyên môn'],
@@ -25,7 +27,8 @@ const vocabulary = [
   ['おちゃ','ocha','trà'], ['ごはん','gohan','cơm, bữa ăn'],
   ['たまご','tamago','trứng'], ['さかな','sakana','cá'],
   ['おかね','okane','tiền'], ['じかん','jikan','thời gian'],
-  ['べんきょう','benkyou','việc học',['benkyō']], ['しゅくだい','shukudai','bài tập về nhà']
+  ['べんきょう','benkyou','việc học',['benkyō']], ['しゅくだい','shukudai','bài tập về nhà'],
+  ...EXTRA_VOCABULARY
 ];
 
 // Prompt meanings include context to distinguish greetings with similar translations.
@@ -53,7 +56,8 @@ const expressions = [
   ['いただきます','Lời nói trước khi ăn',['mời ăn','mời mọi người ăn','tôi xin phép ăn','cảm ơn vì bữa ăn','lời nói trước khi ăn'],'itadakimasu',[], 'Lời cảm ơn trước bữa ăn; không có một bản dịch tiếng Việt duy nhất.'],
   ['ごちそうさまでした','Cảm ơn vì bữa ăn (nói sau khi ăn)',['cảm ơn vì bữa ăn','cảm ơn bữa ăn','cảm ơn đã cho tôi ăn ngon'],'gochisousama deshita',['ごちそうさま']],
   ['おねがいします','Làm ơn / nhờ bạn (khi yêu cầu)',['làm ơn','nhờ bạn','xin nhờ bạn','xin vui lòng'],'onegaishimasu',['お願いします']],
-  ['だいじょうぶです','Tôi ổn / không sao đâu',['tôi ổn','không sao đâu','không sao','tôi không sao'],'daijoubu desu',['大丈夫です']]
+  ['だいじょうぶです','Tôi ổn / không sao đâu',['tôi ổn','không sao đâu','không sao','tôi không sao'],'daijoubu desu',['大丈夫です']],
+  ...EXTRA_EXPRESSIONS
 ];
 
 export const TYPES = [
