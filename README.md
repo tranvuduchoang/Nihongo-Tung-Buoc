@@ -2,14 +2,15 @@
 
 **Website:** https://tranvuduchoang.github.io/Nihongo-Tung-Buoc/
 
-Website tĩnh để học Hiragana (46 âm đơn, 26 âm có dấu biến âm, 21 âm ghép và 15 âm ghép có dấu biến âm), chọn một hoặc nhiều nhóm ở trang đầu, bằng hai cách:
+Website tĩnh để học Hiragana và Katakana, chọn một hoặc nhiều nhóm ở trang đầu. Katakana có 46 âm đơn, 26 âm có dấu biến âm, 21 âm ghép, 15 âm ghép biến âm và 24 tổ hợp thường gặp trong từ mượn. Không cần tài khoản, máy chủ hay database.
 
 - **Nhìn chữ, gõ âm:** nhập Romaji; trả lời đúng/sai được báo ngay rồi tự chuyển chữ.
-- **Nhìn âm, vẽ chữ:** vẽ bằng chuột hoặc ngón tay, âm ghép có một ô lớn cho chữ chính và một ô nhỏ cho ゃ ゅ ょ; bộ nhận dạng chạy ngay trong trình duyệt.
+- **Nhìn âm, vẽ chữ:** vẽ bằng chuột hoặc ngón tay. Hiragana được bộ nhận dạng chạy ngay trong trình duyệt chấm tự động; với Katakana, người học so sánh nét vừa viết với mẫu rồi tự đánh giá để tránh kết luận sai từ mô hình chưa được huấn luyện cho Katakana.
+- Katakana có nhóm âm dành cho từ mượn, cùng gợi ý về dấu kéo dài **ー** và âm ngắt **ッ**.
 
 Kết quả giữ trên màn hình trong 60 giây trước khi tự chuyển. Người học có thể bấm **Chữ tiếp theo** để chuyển ngay; không có đồng hồ đếm ngược trên giao diện.
 
-Sau mỗi lượt, trang kết quả hiển thị các âm đã chọn theo từng nhóm với màu xanh/đỏ và nút ôn lại chữ sai. Tiến độ lượt học hiện tại được lưu trong `localStorage` của trình duyệt. Katakana và Kanji đang là mục dự kiến cho các phiên bản sau.
+Sau mỗi lượt, trang kết quả hiển thị các âm đã chọn theo từng nhóm với màu xanh/đỏ và nút ôn lại chữ sai. Tiến độ Hiragana và Katakana được lưu riêng trong `localStorage` của trình duyệt, nên có thể tải lại trang để tiếp tục. Kanji vẫn là mục dự kiến cho phiên bản sau.
 
 ## Làm bài tập
 

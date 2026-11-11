@@ -1,4 +1,4 @@
-const GROUPS = [
+const HIRAGANA_GROUPS = [
   {id: 'basic', name: 'Âm đơn', sample: 'あ', hint: 'Bảng chữ cái gốc', items: [
     ['あ','a'],['い','i'],['う','u'],['え','e'],['お','o'],
     ['か','ka'],['き','ki'],['く','ku'],['け','ke'],['こ','ko'],
@@ -37,13 +37,73 @@ const GROUPS = [
   ]}
 ];
 
-const KANA = GROUPS.flatMap(group => group.items);
-let nextIndex = 0;
-for (const group of GROUPS) group.indexes = group.items.map(() => nextIndex++);
+const KATAKANA_GROUPS = [
+  {id: 'basic', name: 'Âm đơn', sample: 'ア', hint: 'Bảng chữ cái gốc', items: [
+    ['ア','a'],['イ','i'],['ウ','u'],['エ','e'],['オ','o'],
+    ['カ','ka'],['キ','ki'],['ク','ku'],['ケ','ke'],['コ','ko'],
+    ['サ','sa'],['シ','shi','si'],['ス','su'],['セ','se'],['ソ','so'],
+    ['タ','ta'],['チ','chi','ti'],['ツ','tsu','tu'],['テ','te'],['ト','to'],
+    ['ナ','na'],['ニ','ni'],['ヌ','nu'],['ネ','ne'],['ノ','no'],
+    ['ハ','ha'],['ヒ','hi'],['フ','fu','hu'],['ヘ','he'],['ホ','ho'],
+    ['マ','ma'],['ミ','mi'],['ム','mu'],['メ','me'],['モ','mo'],
+    ['ヤ','ya'],['ユ','yu'],['ヨ','yo'],
+    ['ラ','ra'],['リ','ri'],['ル','ru'],['レ','re'],['ロ','ro'],
+    ['ワ','wa'],['ヲ','wo'],['ン','n']
+  ]},
+  {id: 'voiced', name: 'Âm có dấu biến âm', sample: 'ガ', hint: 'ガ ザ ダ バ パ ヴ', items: [
+    ['ガ','ga'],['ギ','gi'],['グ','gu'],['ゲ','ge'],['ゴ','go'],
+    ['ザ','za'],['ジ','ji','zi'],['ズ','zu'],['ゼ','ze'],['ゾ','zo'],
+    ['ダ','da'],['ヂ','dji','ji','di'],['ヅ','dzu','zu','du'],['デ','de'],['ド','do'],
+    ['バ','ba'],['ビ','bi'],['ブ','bu'],['ベ','be'],['ボ','bo'],
+    ['パ','pa'],['ピ','pi'],['プ','pu'],['ペ','pe'],['ポ','po'],['ヴ','vu']
+  ]},
+  {id: 'combo', name: 'Âm ghép', sample: 'キャ', hint: 'キャ シャ チャ ニャ', items: [
+    ['キャ','kya'],['キュ','kyu'],['キョ','kyo'],
+    ['シャ','sha','sya'],['シュ','shu','syu'],['ショ','sho','syo'],
+    ['チャ','cha','tya','cya'],['チュ','chu','tyu','cyu'],['チョ','cho','tyo','cyo'],
+    ['ニャ','nya'],['ニュ','nyu'],['ニョ','nyo'],
+    ['ヒャ','hya'],['ヒュ','hyu'],['ヒョ','hyo'],
+    ['ミャ','mya'],['ミュ','myu'],['ミョ','myo'],
+    ['リャ','rya'],['リュ','ryu'],['リョ','ryo']
+  ]},
+  {id: 'voiced-combo', name: 'Âm ghép biến âm', sample: 'ギャ', hint: 'ギャ ジャ ビャ ピャ', items: [
+    ['ギャ','gya'],['ギュ','gyu'],['ギョ','gyo'],
+    ['ジャ','ja','zya','jya'],['ジュ','ju','zyu','jyu'],['ジョ','jo','zyo','jyo'],
+    ['ヂャ','ja','dya','dja'],['ヂュ','ju','dyu','dju'],['ヂョ','jo','dyo','djo'],
+    ['ビャ','bya'],['ビュ','byu'],['ビョ','byo'],
+    ['ピャ','pya'],['ピュ','pyu'],['ピョ','pyo']
+  ]},
+  {id: 'loanword', name: 'Âm trong từ mượn', sample: 'ファ', hint: 'ファ ティ ウィ ヴァ', items: [
+    ['ティ','ti'],['ディ','di'],['トゥ','tu'],['ドゥ','du'],
+    ['ファ','fa'],['フィ','fi'],['フェ','fe'],['フォ','fo'],
+    ['ウィ','wi'],['ウェ','we'],['ウォ','wo'],
+    ['ヴァ','va'],['ヴィ','vi'],['ヴェ','ve'],['ヴォ','vo'],
+    ['シェ','she'],['ジェ','je'],['チェ','che'],
+    ['ツァ','tsa'],['ツィ','tsi'],['ツェ','tse'],['ツォ','tso'],
+    ['クァ','kwa'],['グァ','gwa']
+  ]}
+];
+
+const SCRIPT_GROUPS = {hiragana: HIRAGANA_GROUPS, katakana: KATAKANA_GROUPS};
+const SCRIPT_NAMES = {hiragana: 'Hiragana', katakana: 'Katakana'};
+let activeScript = 'hiragana';
+let GROUPS = HIRAGANA_GROUPS;
+let KANA = [];
+
+function activateScript(script) {
+  activeScript = Object.prototype.hasOwnProperty.call(SCRIPT_GROUPS, script) ? script : 'hiragana';
+  GROUPS = SCRIPT_GROUPS[activeScript];
+  KANA = GROUPS.flatMap(group => group.items);
+  let nextIndex = 0;
+  for (const group of GROUPS) group.indexes = group.items.map(() => nextIndex++);
+}
+
+activateScript(activeScript);
 const SMALL_KANA = {'ゃ': 'や', 'ゅ': 'ゆ', 'ょ': 'よ'};
 const FULL_TO_SMALL = {'や': 'ゃ', 'ゆ': 'ゅ', 'よ': 'ょ'};
 
 const STORAGE_KEY = 'kana-study-v1';
+const ACTIVE_SCRIPT_KEY = 'kana-active-script-v1';
 const SAMPLES_KEY = 'kana-handwriting-v1';
 const MAX_SAMPLES_PER_CHAR = 20;
 const FEEDBACK_DELAY_MS = 60_000;
@@ -52,7 +112,7 @@ const announcer = document.querySelector('#announcer');
 const state = {
   screen: 'home', mode: 'type', queue: [], cursor: 0,
   results: {}, feedback: null, feedbackUntil: 0, snapshots: [], cellStrokes: [], strokeOrder: [], drawing: false,
-  groups: ['basic'],
+  groups: ['basic'], drawingReview: false,
   pointerId: null, timer: null, samples: {}, samplesModel: null
 };
 
@@ -62,9 +122,20 @@ function escapeHtml(value) {
 
 function announce(message) { announcer.textContent = message; }
 
+function storageKey() {
+  return activeScript === 'hiragana' ? STORAGE_KEY : `${STORAGE_KEY}:${activeScript}`;
+}
+
+function samplesStorageKey() {
+  return activeScript === 'hiragana' ? SAMPLES_KEY : `${SAMPLES_KEY}:${activeScript}`;
+}
+
+function scriptName() { return SCRIPT_NAMES[activeScript]; }
+
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(ACTIVE_SCRIPT_KEY, activeScript);
+    localStorage.setItem(storageKey(), JSON.stringify({
       screen: state.screen, mode: state.mode, queue: state.queue, groups: state.groups,
       cursor: state.cursor, results: state.results, pendingAdvance: Boolean(state.feedback),
       feedback: state.feedback, feedbackUntil: state.feedbackUntil
@@ -72,9 +143,13 @@ function save() {
   } catch { /* Private browsing can block storage; the current session still works. */ }
 }
 
-function restore() {
+function restore({readActiveScript = true} = {}) {
   try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (readActiveScript) {
+      const savedScript = localStorage.getItem(ACTIVE_SCRIPT_KEY);
+      activateScript(savedScript === 'katakana' ? 'katakana' : 'hiragana');
+    }
+    const data = JSON.parse(localStorage.getItem(storageKey()) || 'null');
     if (!data || !['home','quiz','results'].includes(data.screen) || !['type','draw'].includes(data.mode)) return;
     if (!Array.isArray(data.queue) || !data.queue.length || data.queue.length > KANA.length ||
         new Set(data.queue).size !== data.queue.length ||
@@ -111,6 +186,27 @@ function restore() {
       cursor === data.queue.length ? 'results' : data.screen,
       mode: data.mode, queue: data.queue, cursor, results: clean, feedback, feedbackUntil});
   } catch { /* Ignore stale or malformed browser data. */ }
+}
+
+function selectScript(script) {
+  if (!Object.prototype.hasOwnProperty.call(SCRIPT_GROUPS, script) || script === activeScript) return;
+  clearTimer();
+  activateScript(script);
+  Object.assign(state, {
+    screen: 'home', mode: 'type', queue: [], cursor: 0, results: {},
+    feedback: null, feedbackUntil: 0, groups: ['basic'], samples: {}, samplesModel: null
+  });
+  resetDrawing();
+  try { localStorage.setItem(ACTIVE_SCRIPT_KEY, activeScript); }
+  catch { /* The active script still changes for this session. */ }
+  restore({readActiveScript: false});
+  loadSamples();
+  refreshSampleFeatures();
+  save();
+  render();
+  if (state.feedback) state.timer = setTimeout(next, Math.max(0, state.feedbackUntil - Date.now()));
+  document.querySelector(`[data-script="${activeScript}"]`)?.focus({preventScroll: true});
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 function shuffle(items) {
@@ -150,6 +246,7 @@ function resetDrawing() {
   state.snapshots = [];
   state.cellStrokes = [];
   state.strokeOrder = [];
+  state.drawingReview = false;
 }
 
 function cellCount(item) { return [...item[0]].length; }
@@ -158,6 +255,7 @@ function cellCount(item) { return [...item[0]].length; }
 function cellTargets(item) {
   const chars = [...item[0]];
   return chars.map((char, cell) => {
+    if (activeScript === 'katakana') return [char];
     if (SMALL_KANA[char]) return [SMALL_KANA[char]];
     // じゃ and ぢゃ share the romaji "ja", so either spelling answers the prompt.
     if (chars.length > 1 && cell === 0 && (char === 'じ' || char === 'ぢ')) return ['じ', 'ぢ'];
@@ -197,7 +295,7 @@ function grade(correct, answer, recognized = '') {
   state.results[index] = {correct, answer};
   state.feedback = {correct, answer, recognized};
   state.feedbackUntil = Date.now() + FEEDBACK_DELAY_MS;
-  if (state.mode === 'draw') {
+  if (state.mode === 'draw' && !state.snapshots.length) {
     state.snapshots = [...document.querySelectorAll('.draw-canvas')].map(canvas => canvas.toDataURL('image/png'));
   }
   save();
@@ -251,9 +349,41 @@ function recognizeDrawing() {
   grade(results.every(result => result.correct), shown, shown);
 }
 
+function reviewKatakanaDrawing() {
+  const targets = cellTargets(current());
+  const cells = targets.map((_, cell) => state.cellStrokes[cell] || []);
+  if (cells.some(strokes => !strokes.length)) {
+    showDrawMessage(targets.length > 1 ? 'Hãy vẽ đủ các ô trước khi tự chấm.' : 'Hãy vẽ chữ trước khi tự chấm.');
+    return;
+  }
+  const tooSmall = cells.some(strokes => {
+    const points = strokes.flat();
+    const xs = points.map(point => point[0]);
+    const ys = points.map(point => point[1]);
+    return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) < 38;
+  });
+  if (tooSmall) { showDrawMessage('Nét vẽ quá nhỏ. Hãy vẽ rõ hơn trên ô giấy.'); return; }
+  try {
+    state.snapshots = [...document.querySelectorAll('.draw-canvas')].map(canvas => canvas.toDataURL('image/png'));
+  } catch {
+    showDrawMessage('Không thể xem trước nét vẽ. Hãy thử xóa nét rồi vẽ lại.');
+    return;
+  }
+  state.drawingReview = true;
+  render();
+  document.querySelector('[data-action="mark-draw-correct"]')?.focus({preventScroll: true});
+  announce('So sánh nét vẽ với chữ mẫu rồi tự đánh giá kết quả.');
+}
+
+function renderKatakanaSelfReview(item) {
+  return `<div class="katakana-self-review"><span>CHỮ MẪU</span><strong>${item[0]}</strong><p>So sánh từng nét với chữ bạn vừa viết, rồi tự chấm kết quả.</p></div>
+    <div class="draw-preview">${state.snapshots.map(snapshot => `<img alt="Nét vẽ của bạn" src="${snapshot}">`).join('')}</div>
+    <div class="self-grade-actions"><button class="button button-dark" data-action="mark-draw-correct" type="button">Mình viết đúng</button><button class="button button-outline" data-action="mark-draw-wrong" type="button">Cần luyện lại</button><button class="self-grade-redraw" data-action="redraw-katakana" type="button">Vẽ lại</button></div>`;
+}
+
 function loadSamples() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAMPLES_KEY) || 'null');
+    const saved = JSON.parse(localStorage.getItem(samplesStorageKey()) || 'null');
     if (!saved || typeof saved.samples !== 'object') return;
     for (const [char, list] of Object.entries(saved.samples)) {
       if (!KANA.some(([kana]) => kana === char) || !Array.isArray(list)) continue;
@@ -266,7 +396,7 @@ function loadSamples() {
 
 function saveSamples() {
   try {
-    localStorage.setItem(SAMPLES_KEY, JSON.stringify({modelVersion: window.KANA_MODEL_DATA?.version, samples: state.samples}));
+    localStorage.setItem(samplesStorageKey(), JSON.stringify({modelVersion: window.KANA_MODEL_DATA?.version, samples: state.samples}));
   } catch { /* Storage may be full or blocked; samples still help for this session. */ }
 }
 
@@ -286,6 +416,7 @@ function sampleCount() {
 
 // A retrained model has different features, so saved drawings are re-read in the background.
 function refreshSampleFeatures() {
+  if (activeScript !== 'hiragana') return;
   const version = window.KANA_MODEL_DATA?.version;
   if (!version || state.samplesModel === version || !sampleCount()) return;
   const pending = Object.values(state.samples).flat();
@@ -311,7 +442,7 @@ function exportSamples() {
 }
 
 function clearSamples() {
-  if (!window.confirm('Xóa toàn bộ mẫu chữ đã lưu? Máy sẽ phải học lại nét chữ của bạn từ đầu.')) return;
+  if (!window.confirm(`Xóa toàn bộ mẫu chữ ${scriptName()} đã lưu? Máy sẽ phải học lại nét chữ của bạn từ đầu.`)) return;
   state.samples = {};
   saveSamples();
   render();
@@ -350,13 +481,16 @@ function toggleGroup(id) {
 function renderDrawCells(item) {
   const count = cellCount(item);
   const cells = Array.from({length: count}, (_, cell) => `<div class="draw-cell ${cell ? 'is-small' : ''}">
-      <div class="draw-wrap"><canvas class="draw-canvas" data-cell="${cell}" width="256" height="256" aria-label="${count > 1 ? (cell ? 'Ô vẽ chữ nhỏ' : 'Ô vẽ chữ chính') : 'Ô vẽ chữ Hiragana'} bằng chuột hoặc ngón tay"></canvas></div>
-      ${count > 1 ? `<span class="cell-label">${cell ? 'Chữ nhỏ' : 'Chữ chính'}</span>` : ''}
+      <div class="draw-wrap"><canvas class="draw-canvas" data-cell="${cell}" width="256" height="256" aria-label="${count > 1 ? (cell ? 'Ô vẽ chữ nhỏ' : 'Ô vẽ chữ chính') : `Ô vẽ chữ ${scriptName()}`} bằng chuột hoặc ngón tay"></canvas></div>
+      ${count > 1 && activeScript === 'hiragana' ? `<span class="cell-label">${cell ? 'Chữ nhỏ' : 'Chữ chính'}</span>` : ''}
     </div>`).join('');
   return `<div class="draw-cells">${cells}</div>`;
 }
 
 function renderHome() {
+  const sample = KANA[0];
+  const script = scriptName();
+  const scriptLabel = activeScript.toUpperCase();
   const canResume = state.queue.length && state.cursor < state.queue.length;
   const canViewResults = state.queue.length && state.cursor >= state.queue.length &&
     Object.keys(state.results).length > 0;
@@ -366,15 +500,15 @@ function renderHome() {
         <div class="eyebrow"><span class="eyebrow-line"></span> BẮT ĐẦU HÀNH TRÌNH CỦA BẠN</div>
         <h1>Mỗi ngày một chút.<br><em>Tiếng Nhật</em> gần hơn.</h1>
         <p class="hero-lead">Luyện nhận diện và viết từng chữ cái. Một lượt học nhỏ, một bước tiến thật rõ ràng.</p>
-        <div class="hero-points"><span><b>108</b> âm Hiragana</span><span class="point-dot"></span><span><b>2</b> cách luyện tập</span></div>
+        <div class="hero-points"><span><b>${KANA.length}</b> mục ${script}</span><span class="point-dot"></span><span><b>2</b> cách luyện tập</span></div>
       </div>
-      <div class="hero-art" aria-hidden="true"><span class="art-ring ring-one"></span><span class="art-ring ring-two"></span><div class="art-card card-back">い</div><div class="art-card card-front"><span class="art-label">HIRAGANA 01 / 46</span><strong>あ</strong><span class="art-romaji">a</span></div><span class="art-caption">はじめましょう <i>✳</i></span></div>
+      <div class="hero-art" aria-hidden="true"><span class="art-ring ring-one"></span><span class="art-ring ring-two"></span><div class="art-card card-back">${KANA[1]?.[0] || sample[0]}</div><div class="art-card card-front"><span class="art-label">${scriptLabel} 01 / ${String(GROUPS[0].items.length).padStart(2, '0')}</span><strong>${sample[0]}</strong><span class="art-romaji">${sample[1]}</span></div><span class="art-caption">はじめましょう <i>✳</i></span></div>
     </section>
     <section class="choose-section" aria-labelledby="choose-title">
       <div class="section-heading"><div><span class="section-kicker">CHƯƠNG ĐẦU TIÊN</span><h2 id="choose-title">Chọn bảng chữ cái</h2></div><span class="section-aside">Bắt đầu với nền tảng tiếng Nhật</span></div>
       <div class="script-grid">
-        <div class="script-card selected"><div class="script-top"><span class="script-icon">あ</span><span class="script-status">ĐANG HỌC <i>●</i></span></div><h3>Hiragana</h3><p>46 chữ cơ bản, biến âm và âm ghép · Nền tảng để đọc tiếng Nhật</p><span class="script-bottom">01 / 03 <span aria-hidden="true">↗</span></span></div>
-        <div class="script-card upcoming"><div class="script-top"><span class="script-icon">ア</span><span class="soon-badge">SẮP CÓ</span></div><h3>Katakana</h3><p>Dành cho từ mượn và tên nước ngoài</p><span class="script-bottom">02 / 03</span></div>
+        <button class="script-card ${activeScript === 'hiragana' ? 'selected' : ''}" data-action="select-script" data-script="hiragana" type="button" aria-pressed="${activeScript === 'hiragana'}"><span class="script-top"><span class="script-icon">あ</span><span class="script-status">${activeScript === 'hiragana' ? 'ĐANG HỌC' : 'CHỌN HỌC'}</span></span><span class="script-card-title">Hiragana</span><span class="script-description">46 chữ cơ bản, biến âm và âm ghép · Nền tảng để đọc tiếng Nhật</span><span class="script-bottom">01 / 03 <span aria-hidden="true">↗</span></span></button>
+        <button class="script-card ${activeScript === 'katakana' ? 'selected' : ''}" data-action="select-script" data-script="katakana" type="button" aria-pressed="${activeScript === 'katakana'}"><span class="script-top"><span class="script-icon">ア</span><span class="${activeScript === 'katakana' ? 'script-status' : 'soon-badge'}">${activeScript === 'katakana' ? 'ĐANG HỌC' : 'BẮT ĐẦU'}</span></span><span class="script-card-title">Katakana</span><span class="script-description">Chữ dùng trong từ mượn, tên riêng và âm thanh</span><span class="script-bottom">02 / 03 <span aria-hidden="true">↗</span></span></button>
         <div class="script-card upcoming"><div class="script-top"><span class="script-icon">字</span><span class="soon-badge">SẮP CÓ</span></div><h3>Kanji</h3><p>Hệ thống chữ Hán dùng trong tiếng Nhật</p><span class="script-bottom">03 / 03</span></div>
       </div>
     </section>
@@ -382,12 +516,13 @@ function renderHome() {
       <div class="section-heading"><div><span class="section-kicker">NỘI DUNG LUYỆN TẬP</span><h2 id="groups-title">Chọn nhóm âm</h2></div><span class="section-aside">Chọn một hoặc nhiều nhóm</span></div>
       <div class="group-grid">${GROUPS.map(renderGroupCard).join('')}</div>
       <p class="group-summary"><b>${selectedCount()}</b> âm sẽ xuất hiện trong lượt học, theo thứ tự ngẫu nhiên.</p>
+      ${activeScript === 'katakana' ? `<aside class="katakana-tip"><strong>Mẹo đọc từ mượn</strong><span>Dấu <b>ー</b> kéo dài nguyên âm như コーヒー (koohii); chữ nhỏ <b>ッ</b> ngắt phụ âm như ベッド (beddo).</span></aside>` : ''}
     </section>
     <section class="mode-section" aria-labelledby="mode-title">
       <div class="section-heading"><div><span class="section-kicker">CHỌN CÁCH HỌC</span><h2 id="mode-title">Bạn muốn luyện gì hôm nay?</h2></div></div>
       <div class="mode-grid">
-        <article class="mode-card"><div class="mode-icon">⌨</div><div class="mode-number">01 — NHẬN DIỆN</div><h3>Nhìn chữ, gõ âm</h3><p>Một chữ Hiragana xuất hiện. Bạn nhập phiên âm bằng bàn phím và kiểm tra ngay.</p><button class="button button-dark" data-action="start-type">Bắt đầu luyện gõ <span aria-hidden="true">↗</span></button></article>
-        <article class="mode-card"><div class="mode-icon brush-icon">✎</div><div class="mode-number">02 — LUYỆN VIẾT</div><h3>Nhìn âm, vẽ chữ</h3><p>Một phiên âm xuất hiện. Bạn vẽ chữ bằng chuột hoặc ngón tay và nhận kết quả.</p><button class="button button-outline" data-action="start-draw">Bắt đầu luyện vẽ <span aria-hidden="true">↗</span></button></article>
+        <article class="mode-card"><div class="mode-icon">⌨</div><div class="mode-number">01 — NHẬN DIỆN</div><h3>Nhìn chữ, gõ âm</h3><p>Một chữ ${script} xuất hiện. Bạn nhập phiên âm bằng bàn phím và kiểm tra ngay.</p><button class="button button-dark" data-action="start-type">Bắt đầu luyện gõ <span aria-hidden="true">↗</span></button></article>
+        <article class="mode-card"><div class="mode-icon brush-icon">✎</div><div class="mode-number">02 — LUYỆN VIẾT</div><h3>Nhìn âm, vẽ chữ</h3><p>Một phiên âm xuất hiện. Bạn vẽ chữ bằng chuột hoặc ngón tay và ${activeScript === 'katakana' ? 'tự so sánh với mẫu để chấm' : 'nhận kết quả'}.</p><button class="button button-outline" data-action="start-draw">Bắt đầu luyện vẽ <span aria-hidden="true">↗</span></button></article>
       </div>
       ${canResume ? `<button class="resume-button" data-action="resume">↺ &nbsp; Tiếp tục lượt học đang dở (${state.cursor}/${state.queue.length})</button>` : ''}
       ${canViewResults ? `<button class="resume-button" data-action="view-results">↗ &nbsp; Xem kết quả lượt gần nhất</button>` : ''}
@@ -403,9 +538,9 @@ function renderFeedback() {
   return `<div class="feedback ${right ? 'is-right' : 'is-wrong'}" role="alert">
     <div class="feedback-icon" aria-hidden="true">${right ? '✓' : '×'}</div>
     <div class="feedback-copy"><strong>${right ? 'Chính xác!' : 'Chưa đúng rồi'}</strong><p>${right ?
-      'Bạn đã nhớ đúng chữ này.' :
+      activeScript === 'katakana' && state.mode === 'draw' ? 'Bạn tự đánh giá chữ mình vừa viết là đúng.' : 'Bạn đã nhớ đúng chữ này.' :
       `Đáp án đúng là <b>${item[0]} — ${item[1]}</b>.`}</p>
-      ${!right && state.mode === 'draw' ? `<small>Máy nhận dạng: ${escapeHtml(f.recognized || 'không rõ')}.</small>` : ''}
+      ${!right && state.mode === 'draw' && activeScript === 'hiragana' ? `<small>Máy nhận dạng: ${escapeHtml(f.recognized || 'không rõ')}.</small>` : ''}
     </div>
     <div class="feedback-actions">
       <button class="button button-dark feedback-next" data-action="next">Chữ tiếp theo <span aria-hidden="true">→</span></button>
@@ -418,14 +553,15 @@ function renderQuiz() {
   const done = state.cursor;
   const percent = Math.round((done / state.queue.length) * 100);
   return `<section class="quiz-shell">
-    <div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trở về</button><div class="quiz-track-name">HIRAGANA <span> / </span> ${state.mode === 'type' ? 'NHẬN DIỆN' : 'LUYỆN VIẾT'}</div><span class="quiz-counter">${String(done + 1).padStart(2, '0')} / ${String(state.queue.length).padStart(2, '0')}</span></div>
+    <div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trở về</button><div class="quiz-track-name">${activeScript.toUpperCase()} <span> / </span> ${state.mode === 'type' ? 'NHẬN DIỆN' : 'LUYỆN VIẾT'}</div><span class="quiz-counter">${String(done + 1).padStart(2, '0')} / ${String(state.queue.length).padStart(2, '0')}</span></div>
     <div class="progress-track" role="progressbar" aria-label="Tiến độ luyện tập" aria-valuenow="${done}" aria-valuemin="0" aria-valuemax="${state.queue.length}"><span style="width:${percent}%"></span></div>
-    <div class="quiz-intro"><span class="section-kicker">${state.mode === 'type' ? 'NHÌN CHỮ, GÕ ÂM' : 'NHÌN ÂM, VẼ CHỮ'}</span><h1>${state.mode === 'type' ? 'Chữ này đọc là gì?' : 'Hãy vẽ chữ này'}</h1><p>${state.mode === 'type' ? 'Nhập phiên âm Romaji tương ứng với chữ bên dưới.' : 'Dùng chuột hoặc ngón tay vẽ Hiragana tương ứng với phiên âm.'}</p></div>
+    <div class="quiz-intro"><span class="section-kicker">${state.mode === 'type' ? 'NHÌN CHỮ, GÕ ÂM' : 'NHÌN ÂM, VẼ CHỮ'}</span><h1>${state.mode === 'type' ? 'Chữ này đọc là gì?' : 'Hãy vẽ chữ này'}</h1><p>${state.mode === 'type' ? 'Nhập phiên âm Romaji tương ứng với chữ bên dưới.' : activeScript === 'katakana' ? 'Dùng chuột hoặc ngón tay vẽ Katakana rồi tự so sánh với chữ mẫu.' : 'Dùng chuột hoặc ngón tay vẽ Hiragana tương ứng với phiên âm.'}</p></div>
     <div class="quiz-panel ${state.mode === 'draw' ? 'draw-panel' : ''} ${cellCount(item) > 1 ? 'is-pair' : ''}">
-      <div class="question-side"><span class="card-overline">${state.mode === 'type' ? 'CHỮ HIRAGANA' : 'PHIÊN ÂM ROMAJI'}</span><div class="prompt-symbol ${state.mode === 'draw' ? 'romaji-symbol' : cellCount(item) > 1 ? 'is-compound' : ''}">${state.mode === 'type' ? item[0] : item[1]}</div><span class="card-footnote">${state.mode === 'type' ? 'Đọc chữ này thành tiếng nếu bạn muốn' : cellCount(item) > 1 ? 'Chữ chính viết ở ô lớn, chữ nhỏ viết ở ô nhỏ' : 'Viết đúng chữ Hiragana cho âm này'}</span></div>
+      <div class="question-side"><span class="card-overline">${state.mode === 'type' ? `CHỮ ${scriptName().toUpperCase()}` : 'PHIÊN ÂM ROMAJI'}</span><div class="prompt-symbol ${state.mode === 'draw' ? 'romaji-symbol' : cellCount(item) > 1 ? 'is-compound' : ''}">${state.mode === 'type' ? item[0] : item[1]}</div><span class="card-footnote">${state.mode === 'type' ? 'Đọc chữ này thành tiếng nếu bạn muốn' : activeScript === 'katakana' ? 'Vẽ từng chữ vào ô giấy rồi so với mẫu' : cellCount(item) > 1 ? 'Chữ chính viết ở ô lớn, chữ nhỏ viết ở ô nhỏ' : 'Viết đúng chữ Hiragana cho âm này'}</span></div>
       <div class="answer-side"><span class="card-overline">CÂU TRẢ LỜI CỦA BẠN</span>
-        ${state.feedback ? (state.snapshots.length ? `<div class="draw-preview">${state.snapshots.map((snapshot, cell) => `<img class="${cell ? 'is-small' : ''}" alt="Nét vẽ của bạn" src="${snapshot}">`).join('')}</div>` : `<div class="answered-text">${escapeHtml(state.feedback.answer)}</div>`) :
+        ${state.feedback ? (state.snapshots.length ? `<div class="draw-preview">${state.snapshots.map((snapshot, cell) => `<img class="${activeScript === 'hiragana' && cell ? 'is-small' : ''}" alt="Nét vẽ của bạn" src="${snapshot}">`).join('')}</div>` : `<div class="answered-text">${escapeHtml(state.feedback.answer)}</div>`) :
           state.mode === 'type' ? `<form id="answer-form"><label for="answer" class="input-label">Nhập phiên âm</label><input id="answer" name="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="latin" maxlength="12" placeholder="Ví dụ: a, ki, shi..." aria-describedby="answer-help" autofocus><small id="answer-help">Nhấn Enter hoặc nút Kiểm tra để trả lời</small><button class="button button-dark check-button" type="submit">Kiểm tra <span aria-hidden="true">→</span></button></form>` :
+          activeScript === 'katakana' && state.drawingReview ? renderKatakanaSelfReview(item) :
           `${renderDrawCells(item)}<div class="draw-tools"><button data-action="undo" type="button">↶ &nbsp; Hoàn tác</button><button data-action="clear" type="button">✕ &nbsp; Xóa hết</button></div><p id="draw-message" class="draw-message"></p><button class="button button-dark check-button" data-action="check-draw" type="button">Kiểm tra nét vẽ <span aria-hidden="true">→</span></button>`}
       </div>
     </div>
@@ -449,7 +585,7 @@ function renderResults() {
   const percentage = answered ? Math.round(correct / answered * 100) : 0;
   const shown = GROUPS.filter(group => group.indexes.some(i => state.results[i] || state.queue.includes(i)));
   const total = shown.reduce((sum, group) => sum + group.items.length, 0);
-  return `<section class="results-shell"><div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trang đầu</button><div class="quiz-track-name">HIRAGANA <span> / </span> KẾT QUẢ</div><span class="quiz-counter">HOÀN THÀNH</span></div>
+  return `<section class="results-shell"><div class="quiz-topline"><button class="back-link" data-action="home"><span aria-hidden="true">←</span> Trang đầu</button><div class="quiz-track-name">${activeScript.toUpperCase()} <span> / </span> KẾT QUẢ</div><span class="quiz-counter">HOÀN THÀNH</span></div>
     <div class="results-hero"><span class="section-kicker">MỘT CHẶNG ĐƯỜNG ĐÃ HOÀN THÀNH</span><h1>${wrong === 0 ? 'Thật tuyệt vời!' : 'Bạn đã đi hết một lượt!'}</h1><p>Nhìn lại từng chữ bạn đã luyện. Những ô màu đỏ là cơ hội để nhớ lâu hơn ở lượt tiếp theo.</p></div>
     <div class="stat-grid"><div class="stat-card"><strong>${percentage}<small>%</small></strong><span>ĐỘ CHÍNH XÁC</span></div><div class="stat-card"><strong>${correct}<small> / ${total}</small></strong><span>CHỮ ĐÚNG</span></div><div class="stat-card"><strong>${wrong}<small> / ${total}</small></strong><span>CẦN ÔN LẠI</span></div></div>
     <div class="result-heading"><div><span class="section-kicker">BẢN ĐỒ HỌC TẬP</span><h2>Các âm trong lượt học</h2></div><div class="legend"><span><i class="legend-dot green"></i> Đúng</span><span><i class="legend-dot red"></i> Sai</span><span><i class="legend-dot gray"></i> Chưa luyện</span></div></div>
@@ -560,7 +696,11 @@ app.addEventListener('click', event => {
   else if (action === 'view-results') { state.screen = 'results'; save(); render(); }
   else if (action === 'home') home();
   else if (action === 'next') next();
-  else if (action === 'check-draw') recognizeDrawing();
+  else if (action === 'check-draw') activeScript === 'katakana' ? reviewKatakanaDrawing() : recognizeDrawing();
+  else if (action === 'mark-draw-correct') grade(true, 'Tự chấm: viết đúng');
+  else if (action === 'mark-draw-wrong') grade(false, 'Tự chấm: cần luyện lại');
+  else if (action === 'redraw-katakana') { state.drawingReview = false; state.snapshots = []; render(); }
+  else if (action === 'select-script') selectScript(trigger.dataset.script);
   else if (action === 'export-samples') exportSamples();
   else if (action === 'clear-samples') clearSamples();
   else if (action === 'toggle-group') toggleGroup(trigger.dataset.group);
