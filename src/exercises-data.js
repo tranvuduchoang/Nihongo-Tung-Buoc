@@ -1,4 +1,5 @@
 import {EXTRA_VOCABULARY, EXTRA_EXPRESSIONS} from './exercises-extra.js';
+import {KATAKANA_GROUPS, KATAKANA_WORDS} from './katakana-data.js';
 
 // Append entries to preserve IDs used in saved sessions and results.
 const vocabulary = [
@@ -63,9 +64,71 @@ const expressions = [
 export const TYPES = [
   {id:'kana-romaji', title:'Hiragana → Romaji', sample:'さくら → sakura', description:'Đọc từ và viết lại phiên âm.', target:'Viết bằng Romaji'},
   {id:'romaji-kana', title:'Romaji → Hiragana', sample:'kaban → かばん', description:'Nhớ mặt chữ, âm ghép và âm ngắt.', target:'Viết bằng Hiragana'},
+  {id:'katakana-romaji', title:'Katakana → Romaji', sample:'コーヒー → koohii', description:'Đọc âm đơn, âm ghép và từ mượn.', target:'Viết bằng Romaji'},
+  {id:'romaji-katakana', title:'Romaji → Katakana', sample:'sakkaa → サッカー', description:'Nhớ mặt chữ, dấu kéo dài và âm ngắt.', target:'Viết bằng Katakana'},
+  {id:'katakana-vi', title:'Katakana → Tiếng Việt', sample:'ホテル → khách sạn', description:'Đọc và hiểu từ mượn thường gặp.', target:'Viết nghĩa bằng tiếng Việt'},
+  {id:'vi-katakana', title:'Tiếng Việt → Katakana', sample:'cà phê → コーヒー', description:'Nhớ cách viết Katakana của từ mượn.', target:'Viết bằng Katakana'},
   {id:'vi-ja', title:'Tiếng Việt → Tiếng Nhật', sample:'Cảm ơn → ありがとう', description:'Luyện câu chào và giao tiếp hằng ngày.', target:'Viết bằng tiếng Nhật (Hiragana hoặc Kanji)'},
   {id:'ja-vi', title:'Tiếng Nhật → Tiếng Việt', sample:'こんばんは → Chào buổi tối', description:'Hiểu nghĩa và ngữ cảnh sử dụng.', target:'Viết nghĩa bằng tiếng Việt'}
 ];
+
+const katakanaCharacters = KATAKANA_GROUPS.flatMap(group => group.items.map(([kana, romaji, ...variants]) => ({
+  kana, romaji, variants, group:group.name, groupId:group.id,
+  id:`katakana-char-${[...kana].map(char => char.codePointAt(0).toString(16)).join('-')}`,
+  meaning:`Katakana · ${group.name}`,
+  note:group.id === 'voiced' ? 'Dấu dakuten/handakuten làm thay đổi âm của chữ gốc.' :
+    [...kana].length > 1 ? 'Chữ thứ hai nhỏ hơn và ghép với chữ chính thành một âm.' : ''
+})));
+
+const katakanaReadQuestions = [
+  ...katakanaCharacters.map(item => ({
+    id:`${item.id}-read`, type:'katakana-romaji', prompt:item.kana,
+    answers:[item.romaji, ...item.variants], reading:item.romaji, meaning:item.meaning, note:item.note
+  })),
+  ...KATAKANA_WORDS.map((word, index) => ({
+    id:`katakana-word-${index}-read`, type:'katakana-romaji', prompt:word.kana,
+    answers:[word.romaji, ...(word.romajiVariants || [])], reading:word.romaji,
+    meaning:word.meaning, note:word.note || ''
+  }))
+];
+
+const writingPrompts = new Map();
+for (const item of katakanaCharacters) {
+  const prompt = writingPrompts.get(item.romaji) || {kana:[], meanings:[], notes:[]};
+  prompt.kana.push(item.kana);
+  prompt.meanings.push(item.meaning);
+  if (item.note) prompt.notes.push(item.note);
+  writingPrompts.set(item.romaji, prompt);
+}
+for (const item of katakanaCharacters) {
+  for (const alias of item.variants) {
+    writingPrompts.get(alias)?.kana.push(item.kana);
+  }
+}
+for (const word of KATAKANA_WORDS) {
+  const prompt = writingPrompts.get(word.romaji) || {kana:[], meanings:[], notes:[]};
+  prompt.kana.push(word.kana, ...(word.kanaVariants || []));
+  prompt.meanings.push(word.meaning);
+  if (word.note) prompt.notes.push(word.note);
+  writingPrompts.set(word.romaji, prompt);
+}
+const katakanaWriteQuestions = [...writingPrompts].map(([romaji, prompt]) => {
+  const answers = [...new Set(prompt.kana)];
+  const meanings = [...new Set(prompt.meanings)];
+  const notes = [...new Set(prompt.notes)];
+  return {
+    id:`katakana-write-${romaji}`, type:'romaji-katakana', prompt:romaji,
+    answers, reading:romaji, meaning:meanings.join(' / '),
+    note:answers.length > 1 ? 'Phiên âm này có nhiều cách viết Katakana được chấp nhận.' : notes.join(' ')
+  };
+});
+
+const katakanaMeaningQuestions = KATAKANA_WORDS.flatMap((word, index) => [
+  {id:`katakana-word-${index}-meaning`, type:'katakana-vi', prompt:word.kana,
+    answers:[word.meaning, ...(word.meaningVariants || [])], reading:word.romaji, meaning:word.meaning, note:word.note || ''},
+  {id:`katakana-word-${index}-write`, type:'vi-katakana', prompt:word.meaning,
+    answers:[word.kana, ...(word.kanaVariants || [])], reading:word.romaji, meaning:word.meaning, note:word.note || ''}
+]);
 
 export const QUESTIONS = [
   ...vocabulary.flatMap(([kana, romaji, meaning, variants = []], i) => [
@@ -76,12 +139,15 @@ export const QUESTIONS = [
   ...expressions.flatMap(([japanese, vietnamese, meanings, reading, variants = [], note = ''], i) => [
     {id:`phrase-${i}-write`, type:'vi-ja', prompt:vietnamese, answers:[japanese, ...variants], reading, meaning:vietnamese, note},
     {id:`phrase-${i}-read`, type:'ja-vi', prompt:japanese, answers:meanings, reading, meaning:vietnamese, note}
-  ])
+  ]),
+  ...katakanaReadQuestions,
+  ...katakanaWriteQuestions,
+  ...katakanaMeaningQuestions
 ];
 
 export function normalizeAnswer(value, type) {
   let answer = value.normalize('NFKC').toLowerCase().trim();
-  if (type === 'ja-vi') answer = answer.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
+  if (['ja-vi','katakana-vi'].includes(type)) answer = answer.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd');
   // Preserve small kana, vowel length and doubled consonants: these change words.
   return answer.replace(/[\s\p{P}]/gu, '');
 }

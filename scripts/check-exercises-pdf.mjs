@@ -27,12 +27,12 @@ const allTypes = TYPES.map(type => type.id);
 const samples = [
   ...allTypes.map(id => ({name:id, ids:[id], count:10})),
   {name:'two-sections', ids:['kana-romaji','romaji-kana'], count:20},
-  {name:'four-sections', ids:allTypes, count:20},
+  {name:'all-sections', ids:allTypes, count:20},
   {name:'full-bank-per-section', ids:allTypes, count:100}
 ];
 for (const sample of samples) {
   const sections = createWorksheet(sample.ids, sample.count, () => .5);
-  const bytes = await buildWorksheetPdf(sections, assets, {code:'QA-600'});
+  const bytes = await buildWorksheetPdf(sections, assets, {code:'QA-980'});
   assert.equal(Buffer.from(bytes).subarray(0, 4).toString(), '%PDF');
   const pdf = await assets.pdfLib.PDFDocument.load(bytes);
   assert(pdf.getPageCount() >= sample.ids.length);

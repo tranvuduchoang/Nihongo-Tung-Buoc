@@ -94,6 +94,10 @@ export async function buildWorksheetPdf(sections, assets, {code = 'LUYEN-TAP'} =
   const directions = {
     'kana-romaji':'Viết phiên âm Romaji cho mỗi từ Hiragana bên dưới.',
     'romaji-kana':'Viết mỗi từ Romaji bằng chữ Hiragana. Chú ý âm dài và chữ nhỏ.',
+    'katakana-romaji':'Viết phiên âm Romaji cho từng chữ hoặc từ Katakana bên dưới.',
+    'romaji-katakana':'Viết mỗi âm hoặc từ Romaji bằng chữ Katakana. Chú ý âm dài và chữ nhỏ ッ.',
+    'katakana-vi':'Viết nghĩa tiếng Việt của mỗi từ Katakana bên dưới.',
+    'vi-katakana':'Viết từ mượn tiếng Nhật bằng chữ Katakana.',
     'vi-ja':'Viết câu tiếng Nhật phù hợp với nghĩa và ngữ cảnh đã cho.',
     'ja-vi':'Dịch từng câu tiếng Nhật sang tiếng Việt.'
   };
@@ -119,8 +123,8 @@ export async function buildWorksheetPdf(sections, assets, {code = 'LUYEN-TAP'} =
 
   for (const section of sections) {
     newPage(section, false);
-    const isWord = ['kana-romaji','romaji-kana'].includes(section.id);
-    const size = section.id === 'vi-ja' ? 12 : 16;
+    const isWord = ['kana-romaji','romaji-kana','katakana-romaji','romaji-katakana','katakana-vi'].includes(section.id);
+    const size = ['vi-ja','vi-katakana'].includes(section.id) ? 12 : 16;
     for (const [index, question] of section.questions.entries()) {
       const promptLines = wrap(question.prompt, size, width - margin * 2 - 57);
       const promptHeight = promptLines.length * (size + 6);

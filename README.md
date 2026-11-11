@@ -16,7 +16,7 @@ Sau mỗi lượt, trang kết quả hiển thị các âm đã chọn theo từ
 
 Chọn **Làm bài tập** trên thanh điều hướng hoặc mở `/exercises/`. Trang riêng này không thay đổi logic kiểm tra bảng chữ cái.
 
-Ngân hàng gồm **600 câu hỏi** theo bốn dạng: Hiragana → Romaji (200 câu), Romaji → Hiragana (200 câu), tiếng Việt → tiếng Nhật (100 câu) và tiếng Nhật → tiếng Việt (100 câu). Tương ứng 200 từ và 100 câu giao tiếp luyện theo hai chiều, gồm gia đình, đồ dùng, ăn uống, thời gian, đi lại, động từ, tính từ và giao tiếp hằng ngày. Có phiên âm, nghĩa và lưu ý sử dụng. Nội dung được tự biên soạn theo chủ đề nhập môn, tham khảo [Marugoto A1](https://marugoto.jpf.go.jp/en/download/starter_a/) và [Irodori Starter](https://www.irodori.jpf.go.jp/en/starter/pdf.html); xem [nguồn và quy ước biên soạn](docs/EXERCISE_CONTENT.md).
+Ngân hàng gồm **980 câu hỏi** theo tám dạng. Bốn dạng Katakana gồm Katakana → Romaji, Romaji → Katakana, Katakana → nghĩa tiếng Việt và tiếng Việt → Katakana; có 132 âm/chữ ghép cùng 30 từ mượn để luyện dấu kéo dài **ー**, âm ngắt **ッ** và cách đọc từ thực tế. Bốn dạng còn lại gồm Hiragana → Romaji (200 câu), Romaji → Hiragana (200 câu), tiếng Việt → tiếng Nhật (100 câu) và tiếng Nhật → tiếng Việt (100 câu). Nội dung từ vựng và câu giao tiếp có phiên âm, nghĩa cùng lưu ý sử dụng; xem [nguồn và quy ước biên soạn](docs/EXERCISE_CONTENT.md).
 
 - Chọn nhiều dạng bài và đề 10, 20 hoặc 30 câu, xáo trộn mỗi lượt. Nếu nhóm đã chọn có ít câu hơn, đề lấy toàn bộ nhóm, không lặp câu.
 - **Đánh máy:** đối chiếu đáp án mẫu; không phân biệt hoa/thường, khoảng trắng và dấu câu. Tiếng Việt chấp nhận cả có dấu/không dấu. Chữ nhỏ, âm dài và phụ âm kép tiếng Nhật vẫn phải đúng. Bài yêu cầu chữ Nhật cần bàn phím tiếng Nhật của thiết bị. Có thể nhấn Ctrl/⌘ + Enter để kiểm tra.
@@ -28,7 +28,7 @@ Ngân hàng gồm **600 câu hỏi** theo bốn dạng: Hiragana → Romaji (200
 
 1. Chọn một hoặc nhiều mục trong bốn dạng bài ở đầu trang.
 2. Trong phần **Mang bài tập ra giấy**, chọn **số câu cho mỗi mục**: 10, 20, 30, 50 hoặc 100.
-3. Bấm **Tải đề PDF**. Ví dụ chọn cả bốn mục, 20 câu/mục, sẽ được một PDF có bốn phần riêng, tổng 80 câu.
+3. Bấm **Tải đề PDF**. Ví dụ chọn cả tám mục, 20 câu/mục, sẽ được một PDF có tám phần riêng, tổng 160 câu.
 
 File dùng khổ A4, có dòng họ tên/ngày, tiêu đề từng mục, số câu, mã đề, số trang và khoảng trống để viết. Mỗi mục bắt đầu ở trang mới; số câu đánh lại từ 1 trong mục. Khi một mục dài nhiều trang, trang tiếp theo vẫn có tiêu đề mục và tiếp tục số câu. **Chỉ xuất đề, không kèm đáp án.** Mỗi lần tải sẽ xáo trộn câu mới trong từng mục, không lặp trong cùng mục.
 

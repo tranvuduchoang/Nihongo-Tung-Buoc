@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {QUESTIONS, TYPES, checkAnswer, makeQueue} from '../src/exercises-data.js';
 import {createWorksheet} from '../src/exercises-pdf.js';
 
-assert.equal(QUESTIONS.length, 600, 'Exercise bank should contain 600 questions.');
+assert.equal(QUESTIONS.length, 980, 'Exercise bank should contain 980 questions.');
 assert.equal(new Set(QUESTIONS.map(question => question.id)).size, QUESTIONS.length);
 for (const question of QUESTIONS) {
   assert(TYPES.some(type => type.id === question.type), question.id);
@@ -51,9 +51,13 @@ assert(!checkAnswer(question('ja-vi', 'みぎにまがってください'), 'Hã
 // Stable IDs are required for old localStorage sessions after a bank expansion.
 assert.equal(QUESTIONS.find(item => item.id === 'word-51-write').prompt, 'shukudai');
 assert.equal(QUESTIONS.find(item => item.id === 'phrase-23-read').prompt, 'だいじょうぶです');
+const expectedCounts = {
+  'kana-romaji':200, 'romaji-kana':200, 'katakana-romaji':162, 'romaji-katakana':158,
+  'katakana-vi':30, 'vi-katakana':30, 'vi-ja':100, 'ja-vi':100
+};
 for (const type of TYPES) {
   const bank = QUESTIONS.filter(item => item.type === type.id);
-  assert.equal(bank.length, ['kana-romaji','romaji-kana'].includes(type.id) ? 200 : 100);
+  assert.equal(bank.length, expectedCounts[type.id]);
   assert.equal(new Set(bank.map(item => item.prompt)).size, bank.length, `Duplicate prompt in ${type.id}`);
 }
 
